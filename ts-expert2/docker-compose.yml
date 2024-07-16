@@ -1,0 +1,38 @@
+version: "3.8"
+
+services:
+  unoserver:
+    container_name: unoserver
+    image: ghcr.io/unoconv/unoserver-docker:0.3.21
+    ports:
+      - "2003:2003"
+    volumes:
+      - shared_data:/home/worker/data/
+    command: unoserver --interface 0.0.0.0
+    networks:
+      - my_network
+
+  ai_doc:
+    container_name: ai_doc
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8501:80"
+    environment:
+      - JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+    volumes:
+      - shared_data:/data/
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: python TsExpert/manage.py runserver 0.0.0.0:80
+    depends_on:
+      - unoserver
+    networks:
+      - my_network
+
+volumes:
+  shared_data:
+
+networks:
+  my_network:
+    driver: bridge
