@@ -9,9 +9,18 @@ from docx import Document
 from .services.extract import KeyValueExtractor
 from .services.post_process import post_process
 from .models import KeyValue
-# Create your views here.
-# 가상의 greet 함수입니다. 실제 greet 함수로 대체하세요
-# 
+
+##################################################
+
+from django.shortcuts import render
+
+def render_tsexpert(req):
+    return render(req, 'TsExpert.html')
+
+##################################################
+
+
+
 def get_key_value_data():
     latest_key_value = KeyValue.objects.order_by('-created_at').first()
     return latest_key_value.key_values
