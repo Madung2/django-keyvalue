@@ -9,13 +9,17 @@ from docx import Document
 from .services.extract import KeyValueExtractor
 from .services.post_process import post_process
 from .models import KeyValue
-
+from django.conf import settings
 ##################################################
 
 from django.shortcuts import render
 
 def render_tsexpert(req):
-    return render(req, 'TsExpert.html')
+    context = {
+        'HOST': settings.HOST,
+        'PORT': settings.PORT
+    }
+    return render(req, 'TsExpert.html', context)
 
 ##################################################
 
