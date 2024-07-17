@@ -63,7 +63,10 @@ ROOT_URLCONF = 'DocTransformer.urls'
 
 CORS_ALLOWED_ORIGINS = [
     'http://121.162.129.61:30100',  # 프론트엔드 도메인
-    'htto://127.0.0.1:8000'
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
+    'http://127.0.0.1:8501',
+    'http://localhost:8501',
 ]
 
 
