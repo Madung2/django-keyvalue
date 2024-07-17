@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TSExpert</title>
+  <!-- font -->
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0" />
+  <!-- css & js -->
+  <link rel="stylesheet" href="./css/reset.css" />
+  <link rel="stylesheet" href="./css/main.css" />
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <!-- jszip 라이브러리를 포함합니다. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.6.0/jszip.min.js"></script>
+  <!-- docx-preview 라이브러리를 포함합니다. -->
+  <script src="https://unpkg.com/docx-preview@0.3.0/dist/docx-preview.min.js"></script>
+  <style>
+    .pdf-box {
+      height: 100%;
+      overflow-y: auto;
+    }
+
+    .loading-image {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100px; /* 적절한 크기로 변경하세요 */
+      height: auto; /* 비율을 유지하며 크기 조정 */
+    }
+  </style>
+</head>
+<body>
+  
+  <div class="container">
+    <div class="title-box">
+      <h1>TSExpert</h1>
+      <div class="btn-box">
+        <button class="btnGyLine" onclick="refreshPage()">초기화</button>
+        <button class="btnGyLine">Logs</button>
+        <button onclick="handleDownload()">다운로드</button>
+      </div>
+    </div>
+    
+    <div class="file-box">
+      <form action="#">
+        <div class="file-name">
+          <label for="fileInput">파일 찾기</label>
+          <input type="file" id="fileInput" name="fileInput"> 
+          <input class="upload-name" value="파일을 첨부해 주세요." placeholder="파일을 첨부해 주세요." readonly>
+        </div>
+      </form>
+    </div>
+
+    <div class="result-box">
+      <div class="Initial-box">
+        <span class="material-symbols-outlined">priority_high</span>
+        <p> 파일을 선택해 주세요.</p>
+      </div>
+
+      <div class="item-box" style="visibility: hidden;">
+        <div class="item">
+          <div class="view-box">
+            <h2>Viewer</h2>
+            <div class="pdf-box">
+              <div id="fileViewer" style="width: 100%; height: 600px;"></div>
+            </div>
+          </div>
+    
+          <div class="data-box">
+
+            <h2>데이터</h2>
+            <div class="table-box">
+              <img id="loading-image" class="loading-image" src="./loading.svg" alt="loading" />
+              <table>
+                <tbody id="tableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const HOST = '127.0.0.1'
+    const PORT = '8502'
+    //const PORT = '8081'
+    const refreshPage = () => location.reload();
+    document.addEventListener('DOMContentLoaded', () => {
+      let uploadedFile = null; // 업로드된 파일을 저장할 변수
+
+      const handlePreviewFile = async (file, fileName) => {
+        const container = document.getElementById('fileViewer');
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          await docx.renderAsync(arrayBuffer, container, null, {
+            className: "docx",
+            inWrapper: true,
+            ignoreWidth: false,
+            ignoreHeight: false,
+            ignoreFonts: false,
+            breakPages: true,
+            ignoreLastRenderedPageBreak: true,
+            experimental: false,
+            trimXmlDeclaration: true,
+            useBase64URL: false,
+            renderChanges: false,
+            renderHeaders: true,
+            renderFooters: true,
+            renderFootnotes: true,
+            renderEndnotes: true,
+            renderComments: true,
+            debug: false,
+        });
+          console.log("docx: finished");
+        } catch (error) {
+          console.error('Error while rendering docx preview', error);
+        }
+      };
+
+      const fetchKeyValue = async (formData) => {
+        try {
+          console.log(`http://${HOST}:${PORT}/ts_expert/extract_key_value/`)
+          const response = await fetch(`http://${HOST}:${PORT}/ts_expert/extract_key_value/`, {
+            method: "POST",
+            body: formData,
+          });
+          if (!response.ok) {
+            throw new Error("Network response was not ok");
+          }
+          const data = await response.json();
+          return data;
+        } catch (error) {
+          console.error("Error fetching data:", error);
+          throw error;
+        }
+      };
+
+      const fetchExel = async (formData) => {
+        try {
+          const response = await fetch(`http://${HOST}:${PORT}/ts_expert/extract_xl/`, {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!response.ok) {
+            throw new Error("Network response was not ok");
+          }
+
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = url;
+          a.download = 'extracted_data.xlsx';
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+        } catch (error) {
+          console.error("Error fetching data:", error);
+          throw error;
+        }
+      };
+
+      const processSearchText = (searchText) => {
+          let splitText = searchText.split('\n');
+          return splitText[0];
+      }
+
+      const populateTable = (data) => {
+        document.getElementById('loading-image').style.display = 'none';
+        const tableBody = document.getElementById('tableBody');
+        tableBody.innerHTML = '';
+        data.forEach(([key, value, original_value, pos_idx]) => {
+          const row = document.createElement('tr');
+          const keyCell = document.createElement('td');
+          keyCell.className = 'key';
+          keyCell.textContent = key;
+
+          const valueCell = document.createElement('td');
+          valueCell.className = 'value';
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.value = value;
+          input.readOnly = true;
+          valueCell.appendChild(input);
+
+          row.appendChild(keyCell);
+          row.appendChild(valueCell);
+          tableBody.appendChild(row);
+
+          row.addEventListener('click', (e) => handleRowClick(e, original_value, pos_idx));
+        });
+      };
+
+      const normalizeString = (str) => {
+        return str.replace(/\s+/g, ' ').trim();
+      };
+
+      const searchAndHighlight = (searchText, pos_idx) => {
+        let processedSearchText = processSearchText(searchText)
+        
+        const container = document.getElementById('fileViewer');
+
+        container.querySelectorAll('.highlight').forEach(element => {
+          element.outerHTML = element.innerHTML;
+        });
+
+        const normalizeString = (str) => {
+          return str.replace(/\s+/g, ' ').trim();
+        };
+
+        const nodes = container.querySelectorAll("p");
+        const normalizedSearchText = normalizeString(processedSearchText);
+        let firstMatchNode = null;
+        let matchCount = 0;
+        let targetMatchNode = null;
+        nodes.forEach(node => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            let combinedText = '';
+            node.childNodes.forEach(child => {
+              if (child.nodeType === Node.TEXT_NODE || child.nodeType === Node.ELEMENT_NODE) {
+                combinedText += child.textContent;
+              }
+            });
+
+            const normalizedCombinedText = normalizeString(combinedText);
+
+            const regex = new RegExp(`(${normalizedSearchText})`, 'gi');
+
+            if (normalizedCombinedText.includes(normalizedSearchText)) {
+              if (!firstMatchNode) {
+                firstMatchNode = node;
+              }
+
+              const highlightSpan = document.createElement('span');
+              highlightSpan.className = 'highlight';
+              while (node.firstChild) {
+                highlightSpan.appendChild(node.firstChild);
+              }
+              node.appendChild(highlightSpan);
+
+              matchCount++;
+              if (matchCount === pos_idx) {
+                targetMatchNode = node;
+              }
+            }
+          }
+        });
+
+        if (targetMatchNode) {
+          targetMatchNode.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          console.log('텍스트를 찾을 수 없습니다.');
+        }
+      };
+
+      const handleRowClick = (event, value, pos_idx) => {
+        event.preventDefault();
+        searchAndHighlight(value, pos_idx);
+      };
+
+      $("#fileInput").on('change', async function(event) {
+        var fileName = $(this).val().split("\\").pop();
+        $(".upload-name").val(fileName);
+
+        var initialBox = document.querySelector('.Initial-box');
+        var attachedBox = document.querySelector('.item-box');
+
+        if (event.target.files.length > 0) {
+          initialBox.style.display = 'none';
+          attachedBox.style.visibility = 'visible';
+
+          const formData = new FormData();
+          const file = event.target.files[0];
+          uploadedFile = file;
+          formData.append("file", file);
+
+          try {
+            await handlePreviewFile(file, fileName);
+            const data = await fetchKeyValue(formData);
+            populateTable(data);
+          } catch (error) {
+            document.getElementById("message").innerText = "Error uploading file.";
+          }
+        } else {
+          initialBox.style.display = 'block';
+          attachedBox.style.visibility = 'hidden';
+        }
+      });
+
+      window.handleDownload = async () => {
+        if (uploadedFile) {
+          const formData = new FormData();
+          formData.append("file", uploadedFile);
+          try {
+            await fetchExel(formData);
+          } catch (error) {
+            console.error("Error downloading file:", error);
+          }
+        } else {
+          console.log("No file uploaded.");
+        }
+      };
+    });
+  </script>
+</body>
+</html>
