@@ -57,19 +57,30 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+################CORS########################
 CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOW_CREDENTIALS = True
 ROOT_URLCONF = 'DocTransformer.urls'
 
 CORS_ALLOWED_ORIGINS = [
     'http://121.162.129.61:30100',  # 프론트엔드 도메인
+    'http://192.168.14.155:8501'
     'http://127.0.0.1:8000',
     'http://localhost:8000',
     'http://127.0.0.1:8501',
     'http://localhost:8501',
 ]
-
-
+CORS_ORIGIN_WHITELIST = [
+    'http://121.162.129.61:30100',  # 프론트엔드 도메인
+    'http://192.168.14.155:8501'
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
+    'http://127.0.0.1:8501',
+    'http://localhost:8501',
+]
+SECURE_CROSS_ORIGIN_OPENER_POLICY = None
+SESSION_COOKIE_SECURE = False
+################CORS########################
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': (
         'rest_framework.renderers.JSONRenderer',
