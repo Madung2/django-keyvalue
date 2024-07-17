@@ -74,7 +74,7 @@
 
             <h2>데이터</h2>
             <div class="table-box">
-              <img id="loading-image" class="loading-image" src="./loading.svg" alt="loading" />
+              <img id="loading-image" class="loading-image" src="{% static 'loading.svg' %}" alt="loading" />
               <table>
                 <tbody id="tableBody"></tbody>
               </table>
@@ -86,8 +86,8 @@
   </div>
 
   <script>
-    const HOST = '127.0.0.1'
-    const PORT = '8000'
+    const HOST = '{{ HOST }}';
+    const PORT = '{{ PORT }}';
     //const PORT = '8081'
     const refreshPage = () => location.reload();
     document.addEventListener('DOMContentLoaded', () => {
