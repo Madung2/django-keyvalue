@@ -32,8 +32,9 @@ RUN poetry install --no-interaction --no-ansi
 RUN python -m spacy download en_core_web_sm
 RUN python -m spacy download ko_core_news_sm
 
+# USER django => unable to find user django
 # Make port 80 available to the world outside this container
-EXPOSE 80
+#EXPOSE 80
 
 # Run the Django application
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8501"]
+CMD ["python3", "manage.py", "runserver", "0.0.0.0:8501"]

@@ -12,19 +12,20 @@ services:
     networks:
       - my_network
 
-  ai_doc:
-    container_name: ai_doc
+  doctransformer:
+    container_name: doctransformer
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8501:80"
+      - "8501:8501"
+      #- "8501:80"
     environment:
       - JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
     volumes:
       - shared_data:/data/
       - /var/run/docker.sock:/var/run/docker.sock
-    command: python TsExpert/manage.py runserver 0.0.0.0:80
+        #command: python docTransformer/manage.py runserver 0.0.0.0:80
     depends_on:
       - unoserver
     networks:

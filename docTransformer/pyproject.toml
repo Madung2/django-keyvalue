@@ -19,6 +19,7 @@ opencv-python = "^4.10.0.84"
 python-mecab-ko = "^1.3.7"
 python-levenshtein = "^0.25.1"
 django-cors-headers = "^4.4.0"
+spacy = "^3.7.5"
 
 
 [build-system]
