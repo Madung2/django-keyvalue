@@ -41,7 +41,7 @@ def run_data_extract(file):
     final_data = post_process(data, key_value)
     return final_data
 
-#@csrf_exempt
+@csrf_exempt
 @api_view(['POST'])
 @parser_classes([MultiPartParser])
 def extract_key_value(request):
@@ -53,7 +53,7 @@ def extract_key_value(request):
     result = run_data_extract(io.BytesIO(content))
     return JsonResponse(result, safe=False)
 
-#@csrf_exempt
+@csrf_exempt
 @api_view(['POST'])
 @parser_classes([MultiPartParser])
 def extract_xl(request):
