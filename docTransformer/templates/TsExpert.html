@@ -17,6 +17,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.6.0/jszip.min.js"></script>
   <!-- docx-preview 라이브러리를 포함합니다. -->
   <script src="https://unpkg.com/docx-preview@0.3.0/dist/docx-preview.min.js"></script>
+  <!----favicon--->
+
   <style>
     .pdf-box {
       height: 100%;
@@ -123,7 +125,7 @@
           console.error('Error while rendering docx preview', error);
         }
       };
-
+      
       const fetchKeyValue = async (formData) => {
         try {
           console.log(`http://${HOST}:${PORT}/ts_expert/extract_key_value/`)
@@ -135,6 +137,7 @@
             throw new Error("Network response was not ok");
           }
           const data = await response.json();
+          console.log('fetchKeyValue:', data)
           return data;
         } catch (error) {
           console.error("Error fetching data:", error);

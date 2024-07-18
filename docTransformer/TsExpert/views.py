@@ -1,15 +1,17 @@
 import io
 import pandas as pd
+from docx import Document
 from django.http import JsonResponse, HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
 from rest_framework.decorators import api_view
+from rest_framework.decorators import parser_classes
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework import status
-from docx import Document
 from .services.extract import KeyValueExtractor
 from .services.post_process import post_process
 from .models import KeyValue
-from django.conf import settings
 ##################################################
 
 from django.shortcuts import render
@@ -39,7 +41,9 @@ def run_data_extract(file):
     final_data = post_process(data, key_value)
     return final_data
 
+#@csrf_exempt
 @api_view(['POST'])
+@parser_classes([MultiPartParser])
 def extract_key_value(request):
     if 'file' not in request.FILES:
         return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
@@ -49,7 +53,9 @@ def extract_key_value(request):
     result = run_data_extract(io.BytesIO(content))
     return JsonResponse(result, safe=False)
 
+#@csrf_exempt
 @api_view(['POST'])
+@parser_classes([MultiPartParser])
 def extract_xl(request):
     if 'file' not in request.FILES:
         return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
