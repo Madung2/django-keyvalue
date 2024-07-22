@@ -12,6 +12,7 @@
   <!-- <link rel="stylesheet" href="./css/reset.css" /> -->
   <link rel="stylesheet" href="{% static 'css/main.css' %}" />
   <link rel="stylesheet" href="{% static 'css/reset.css' %}" />
+  <link rel="icon" type="image/x-icon" href="{% static 'css/favicon.ico' %}">
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
   <!-- jszip 라이브러리를 포함합니다. -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.6.0/jszip.min.js"></script>
@@ -225,12 +226,24 @@
           row.addEventListener('click', (e) => handleRowClick(e, original_value, pos_idx));
         });
       };
+      const saveNodesToFile = (nodes) => {
+        //const nodeTexts = Array.from(nodes).map(node => node.textContent).join('\n\n');
+        //const blob = new Blob([nodeTexts], { type: 'text/plain' });
+        //const url = URL.createObjectURL(blob);
+        //const a = document.createElement('a');
+        //a.href = url;
+        //a.download = 'highlighted_nodes.txt';
+        //a.click();
+        //URL.revokeObjectURL(url);
+        console.log(nodes[0])
+      };
 
       const normalizeString = (str) => {
         return str.replace(/\s+/g, ' ').trim();
       };
 
       const searchAndHighlight = (searchText, pos_idx) => {
+        console.log(searchText, pos_idx )
         let processedSearchText = processSearchText(searchText)
         
         const container = document.getElementById('fileViewer');
@@ -244,10 +257,12 @@
         };
 
         const nodes = container.querySelectorAll("p");
+
         const normalizedSearchText = normalizeString(processedSearchText);
         let firstMatchNode = null;
         let matchCount = 0;
         let targetMatchNode = null;
+        saveNodesToFile(nodes);
         nodes.forEach(node => {
           if (node.nodeType === Node.ELEMENT_NODE) {
             let combinedText = '';
@@ -258,6 +273,7 @@
             });
 
             const normalizedCombinedText = normalizeString(combinedText);
+            console.log('nor', normalizedCombinedText, 'com', combinedText)
 
             const regex = new RegExp(`(${normalizedSearchText})`, 'gi');
 

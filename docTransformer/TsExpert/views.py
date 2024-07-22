@@ -12,6 +12,9 @@ from rest_framework import status
 from .services.extract import KeyValueExtractor
 from .services.post_process import post_process
 from .models import KeyValue
+from pdf2docx import Converter
+import os
+import tempfile
 ##################################################
 
 from django.shortcuts import render
@@ -22,6 +25,23 @@ def render_tsexpert(req):
         'PORT': settings.PORT
     }
     return render(req, 'TsExpert.html', context)
+
+def convert_pdf_to_docx(pdf_file):
+    docx_file_path = 'temp_output.docx'
+    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as temp_pdf:
+        temp_pdf.write(pdf_file.read())
+        temp_pdf_path = temp_pdf.name
+
+    cv = Converter(temp_pdf_path)
+    cv.convert(docx_file_path)
+    cv.close()
+
+    os.remove(temp_pdf_path)
+    return docx_file_path
+
+def is_pdf_file(input_file):
+    file_extension = os.path.splitext(input_file.name)[1].lower()
+    return file_extension == '.pdf'
 
 ##################################################
 
@@ -49,8 +69,22 @@ def extract_key_value(request):
         return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
     
     file = request.FILES['file']
-    content = file.read()
-    result = run_data_extract(io.BytesIO(content))
+    if is_pdf_file(file):
+        print('this is a PDF file')
+        # PDF 파일을 읽고 변환
+        pdf_content = file.read()
+        pdf_file = io.BytesIO(pdf_content)
+        docx_file_path = convert_pdf_to_docx(pdf_file)
+        
+        # 변환된 DOCX 파일을 읽어 run_data_extract에 전달
+        with open(docx_file_path, 'rb') as f:
+            docx_content = f.read()
+        result = run_data_extract(io.BytesIO(docx_content))
+    else:
+        # DOCX 파일을 바로 처리
+        content = file.read()
+        result = run_data_extract(io.BytesIO(content))
+    
     return JsonResponse(result, safe=False)
 
 @csrf_exempt
@@ -71,7 +105,8 @@ def extract_xl(request):
     
     # Save the DataFrame to an Excel file
     output = io.BytesIO()
-    df.to_excel(output, index=False)
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False)
     output.seek(0)
 
     # Create a response with the Excel file
