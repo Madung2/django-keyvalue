@@ -31,8 +31,11 @@ class KeyValueExtractor:
     def filter_function(self, key):
         key = key.strip()
         all_keys= []
+        # print("ALLSYN", self.all_syn)
         for item in self.all_syn:
             if fuzz.ratio(key, item)>=self.THRESHOLD:
+                
+                print('trheshold 통과:', key, item)
                 rep = find_representatives(item, "all", self.key_value)
                 return key, rep
         return None, None
@@ -73,15 +76,25 @@ class KeyValueExtractor:
 
                 # else:
                 text_list = re.split('\s{3,}|,\s*|:\s*', v)
+
+                print('specific_running###############')
+                print('specific=', specific)
+                print(f"k:{k}, v:{v},  textlist = {text_list}")
+                print('specific_running###############')
+
                 for text in text_list:
                     if any(word in text for word in sp_word):
+                        print(f'specific_running: {text},,{keyword_ele}')
                         return text, keyword_ele
         
         return v, keyword_ele
 
     def process_representatives_and_values(self, k, value, reps, data, data_keys, rep_keys, nested_table, table_number, row_num):
+        print('4: 핵심 내용을 넣는 부분 process_representatives_and_values')
+
         for r in reps:
             v, keyword_ele = self.process_specific_value(r, value, k, nested_table)
+            # print('r:',r, 'v:',v, "key_word_ele", keyword_ele)
             data.append([keyword_ele['key'], v, [table_number, row_num]])
             data_keys.add(k)
             rep_keys.add(r)
@@ -137,18 +150,24 @@ class KeyValueExtractor:
         
         :return: 테이블에서 추출된 키-값 쌍의 리스트.
         """
+        print('3: process_tables')
 
         table_data = []
         for i, table in enumerate(self.doc.tables):  
             table_number = i 
             if len(table.columns) >= 2:  # 테이블이 최소 2개의 열을 가지고 있는지 확인
                 for i_r, row in enumerate(table.rows):  
+                    
                     row_num = i_r
                     value_cell = row.cells[1]  
                     key = remove_numbers_special_chars(row.cells[0].text.strip())  # 첫 번째 셀에서 키를 추출
                     value = row.cells[1].text.strip()  # 두 번째 셀에서 값을 추출.
+                    # print(key,":",value)
                     nested_table = self.find_nested_table(value_cell)  # 값 셀에서 중첩된 테이블을 찾음
+                    #############################################################################
+                    # 여기까지 key란:원본문서의 테이블 [0]번 셀에 있는 텍스트 value란:원본문서의 [1]번 셀에 있는 텍스트
                     k, reps = self.filter_function(key)  # 키를 필터링하고 대표 키를 확인
+                    # print(k, reps)
                     if k and (k not in self.data_keys):  # 키가 유효하고 이미 데이터 키 집합에 없는지 확인
                         self.process_representatives_and_values(k, value, reps, table_data, self.data_keys, self.rep_keys, nested_table, table_number, row_num)
                         # 대표 키와 값을 처리하고 데이터 리스트에 추가
@@ -197,9 +216,9 @@ class KeyValueExtractor:
         :return: 추출된 모든 데이터의 리스트.
         """
         table_data = self.process_tables()  # 테이블 데이터 처리
-        if not table_data:
-            print('Extracting table data from PDF...')  # 테이블 데이터가 없으면 PDF에서 데이터 추출 시도
-            table_data = self.extract_table_data_from_pdf()
+        # if not table_data:
+        #     print('Extracting table data from PDF...')  # 테이블 데이터가 없으면 PDF에서 데이터 추출 시도
+        #     table_data = self.extract_table_data_from_pdf()
         self.process_none_table_keys()  # 테이블이 아닌 키-값 쌍 처리
         #print('Table data: ', table_data)  # 추출된 테이블 데이터를 출력
         self.data += table_data  # 추출된 테이블 데이터를 데이터 리스트에 추가

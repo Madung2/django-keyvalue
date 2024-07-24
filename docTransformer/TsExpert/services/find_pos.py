@@ -13,7 +13,7 @@ class PosFinder:
     def find_occurrence_position(self):
         para_idx = 0
         table_count = 0
-        overall_occurrence_count = 0
+        overall_occurrence_count = 0 
         target_occurrence_count = 0
         found = False
 

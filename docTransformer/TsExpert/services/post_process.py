@@ -22,6 +22,8 @@ def find_spword_and_string(text_list, spwords, target_str):
     # 3순위: 첫 번째 요소 반환
     return text_list[0] if text_list else None
 
+
+
 def combine_money_number_tags(tagged_values):
     combined = []
     i = 0
@@ -42,6 +44,15 @@ def combine_money_number_tags(tagged_values):
 
 def process_string(value, target_keyword):
     return value[0]
+
+def process_map(value, target_keyword):
+    print('vvvv', value, target_keyword)
+    map = target_keyword.get('map', '')
+    for v in value:
+        for m_k, m_v in map.items():
+            if m_k in v:
+                return m_v
+    return ''
 
 def process_name(value, target_keyword):
     #############Try to Find NNP by MeCab first#########################
@@ -92,6 +103,28 @@ def process_year(value, target_keyword):
     if numbers:
         return int(numbers[0])* 12
     return value
+
+
+def process_number(value, target_keyword):
+    print('vvvv', value, target_keyword)
+    sp_word = target_keyword.get('sp_word', '')
+
+    if sp_word:
+        target_value = next((v for v in value if sp_word in v), value[0])
+    else:
+        target_value = value[0]
+    value = remove_special_characters(target_value)
+    tagged_value= tag_text(value)
+    for word, tag in tagged_value:
+        if (tag == 'Number') and ('년' in word): # '억'이 있는 숫자 부분만 추출   
+            number = extract_first_float(word)
+            # multiply first float
+            return number * 12
+    print('process_number_values', value)
+    numbers = re.findall(r'\d+', value) 
+    if numbers:
+        return numbers[0]
+    return ''
 
 def process_money(value, target_keyword):
     #print(value, target_keyword, 'this is money')
@@ -168,9 +201,11 @@ process_functions = {
     "name": process_name,
     "department": process_department,
     "year": process_year,
+    "number": process_number, 
     "date": process_date,
     "money": process_money,
-    "percentage": process_percentage
+    "percentage": process_percentage,
+    "map": process_map
 }
 
 

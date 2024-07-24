@@ -48,15 +48,19 @@ def is_pdf_file(input_file):
 
 
 def get_key_value_data():
+    print('2:get_key_value_data')
     latest_key_value = KeyValue.objects.order_by('-created_at').first()
+    print('lated_key_value:', latest_key_value.key_values)
     return latest_key_value.key_values
 
 def run_data_extract(file):
+    print('1:run_data_extract')
     key_value = get_key_value_data()
     print(dir(file))
     doc = Document(file)
     ext = KeyValueExtractor(doc, key_value)
     data = ext.extract_data()
+    print('first_data:', data)
     data = ext.remove_duplication(data)
     final_data = post_process(data, key_value)
     return final_data
