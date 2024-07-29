@@ -101,12 +101,13 @@ class KeyValueExtractor:
 
     def get_text_list(self):
         all_text_list = []
-        for i in range(25):
+        num_paragraphs = min(25, len(self.doc.paragraphs))  # Get the minimum of 25 or the actual number of paragraphs
+        for i in range(num_paragraphs):
             line_text = self.doc.paragraphs[i].text
             text_list = re.split(r'\(|\)|\/|\s{2,}', line_text)
-            all_text_list+= text_list
-        processed_text_list = [ele for ele in all_text_list if ele!='']
-        #print('processed_text_list', processed_text_list)
+            all_text_list += text_list
+        processed_text_list = [ele for ele in all_text_list if ele != '']
+        # print('processed_text_list', processed_text_list)
         return processed_text_list
 
     def process_none_table_keys(self):
@@ -162,7 +163,7 @@ class KeyValueExtractor:
                     value_cell = row.cells[1]  
                     key = remove_numbers_special_chars(row.cells[0].text.strip())  # 첫 번째 셀에서 키를 추출
                     value = row.cells[1].text.strip()  # 두 번째 셀에서 값을 추출.
-                    # print(key,":",value)
+                    print(key,":",value)
                     nested_table = self.find_nested_table(value_cell)  # 값 셀에서 중첩된 테이블을 찾음
                     #############################################################################
                     # 여기까지 key란:원본문서의 테이블 [0]번 셀에 있는 텍스트 value란:원본문서의 [1]번 셀에 있는 텍스트

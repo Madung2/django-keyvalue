@@ -21,6 +21,7 @@ python-levenshtein = "^0.25.1"
 django-cors-headers = "^4.4.0"
 spacy = "^3.7.5"
 pdf2docx = "^0.5.8"
+pypdf2 = "^3.0.1"
 
 
 [build-system]

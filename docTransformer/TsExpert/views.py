@@ -11,10 +11,12 @@ from rest_framework.response import Response
 from rest_framework import status
 from .services.extract import KeyValueExtractor
 from .services.post_process import post_process
+from .services.convert_pdf import convert_doc_to_docx
 from .models import KeyValue
 from pdf2docx import Converter
 import os
 import tempfile
+import PyPDF2
 ##################################################
 
 from django.shortcuts import render
@@ -40,8 +42,28 @@ def convert_pdf_to_docx(pdf_file):
     return docx_file_path
 
 def is_pdf_file(input_file):
-    file_extension = os.path.splitext(input_file.name)[1].lower()
-    return file_extension == '.pdf'
+    print('input_file_name:', input_file.name)
+    return input_file.name.split('.')[-1]=='pdf'
+def is_doc_file(input_file):
+    print('input_file_name:', input_file.name)
+    return input_file.name.split('.')[-1]=='doc'
+
+def extract_first_5_pages(input_pdf_path, output_pdf_path):
+    # PDF 파일 읽기
+    with open(input_pdf_path, 'rb') as input_pdf_file:
+        pdf_reader = PyPDF2.PdfReader(input_pdf_file)
+        pdf_writer = PyPDF2.PdfWriter()
+
+        # 첫 5페이지 추출
+        num_pages = min(len(pdf_reader.pages), 5)
+        for page_num in range(num_pages):
+            page = pdf_reader.pages[page_num]
+            pdf_writer.add_page(page)
+
+        # 새로운 PDF 파일로 저장
+        with open(output_pdf_path, 'wb') as output_pdf_file:
+            pdf_writer.write(output_pdf_file)
+        print(f"Extracted first {num_pages} pages to {output_pdf_path}")
 
 ##################################################
 
@@ -73,12 +95,36 @@ def extract_key_value(request):
         return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
     
     file = request.FILES['file']
-    if is_pdf_file(file):
+    print('thisis file', file, type(file))
+    print(file.name, type(file.name))
+    if is_doc_file(file):
+        print('this is doc file ')
+        print('have to run convert_doc_to_docx')
+        file = convert_doc_to_docx(file)
+        content = file.read()
+        result = run_data_extract(io.BytesIO(content))
+    elif is_pdf_file(file):
         print('this is a PDF file')
         # PDF 파일을 읽고 변환
         pdf_content = file.read()
         pdf_file = io.BytesIO(pdf_content)
-        docx_file_path = convert_pdf_to_docx(pdf_file)
+        
+        # 임시 파일 경로 설정
+        input_pdf_path = 'input.pdf'
+        output_pdf_path = 'output_first_5_pages.pdf'
+        
+        # 임시 파일에 PDF 내용 쓰기
+        with open(input_pdf_path, 'wb') as f:
+            f.write(pdf_content)
+        
+        # 첫 5페이지 추출
+        extract_first_5_pages(input_pdf_path, output_pdf_path)
+        
+        # 변환된 PDF 파일을 읽어 convert_pdf_to_docx에 전달
+        with open(output_pdf_path, 'rb') as f:
+            pdf_5_pages_content = f.read()
+        pdf_5_pages_file = io.BytesIO(pdf_5_pages_content)
+        docx_file_path = convert_pdf_to_docx(pdf_5_pages_file)
         
         # 변환된 DOCX 파일을 읽어 run_data_extract에 전달
         with open(docx_file_path, 'rb') as f:
@@ -99,6 +145,7 @@ def extract_xl(request):
         return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
     
     file = request.FILES['file']
+
     content = file.read()
     data = run_data_extract(io.BytesIO(content))
     

@@ -62,6 +62,7 @@ def process_name(value, target_keyword):
     #     if tag == 'NNP':
     #         return text
     ######### this is using REGEX ######################
+    print('process_name')
     synonyms = target_keyword['synonym']['priority']
     value_ls=value[0].split(' ')
     new_val = ''
@@ -69,6 +70,17 @@ def process_name(value, target_keyword):
         if not any(syn in ele for syn in synonyms) and '매니저' not in ele:
             new_val += ele
     return new_val if new_val else 'value'
+
+
+def process_company(value, target_keyword):
+    synonyms = target_keyword['synonym']['priority']
+    value_ls=value[0].split(')')
+    new_val = ''
+    for ele in value_ls:
+        if not any(syn in ele for syn in synonyms) and '매니저' not in ele:
+            new_val += ele
+    return new_val if new_val else 'value'
+    pass
 
 def process_department(value, target_keyword):
     match = re.search(r'투자금융(\d+)부', value[0])
@@ -205,7 +217,8 @@ process_functions = {
     "date": process_date,
     "money": process_money,
     "percentage": process_percentage,
-    "map": process_map
+    "map": process_map,
+    "company": process_company
 }
 
 
