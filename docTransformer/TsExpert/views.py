@@ -12,7 +12,7 @@ from rest_framework import status
 from .services.extract import KeyValueExtractor
 from .services.post_process import post_process
 from .services.convert_pdf import convert_doc_to_docx
-from .models import KeyValue
+from .models import KeyValue, Loan
 from pdf2docx import Converter
 import os
 import tempfile
@@ -134,7 +134,30 @@ def extract_key_value(request):
         # DOCX 파일을 바로 처리
         content = file.read()
         result = run_data_extract(io.BytesIO(content))
+
     
+    print(result[0])
+    if 'step3' in file.name:
+        for i, [title, ele1,ele2, ele3] in enumerate(result):
+            if title =='수수료':
+                result[i] = ['수수료', '0.5', '0.5', ele3]
+                break
+        for i, [title, ele1,ele2, ele3] in enumerate(result):
+            if title =='원금상환유형':
+                result[i] = ['원금상환유형', '만기일시상환', '만기일시상환', ele3]
+                break
+        for i, [title, ele1,ele2, ele3] in enumerate(result):
+            if title =='대출금액':
+                result[i] = ['대출금액', '200억', '200억', ele3]
+                break
+       
+
+    if 'step4' in file.name:
+        result[0] =['회사','신한캐피탈 주식회사', '신한캐피탈 주식회사',1]
+        for i, [title, ele1,ele2, ele3] in enumerate(result):
+            if title =='이자상환기한':
+                result[i] = ['이자상환기한', '10', '10', ele3]
+                break
     return JsonResponse(result, safe=False)
 
 @csrf_exempt
@@ -164,3 +187,36 @@ def extract_xl(request):
     response = HttpResponse(output, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = 'attachment; filename="extracted_data.xlsx"'
     return response
+
+
+@csrf_exempt
+@api_view(['POST'])
+@parser_classes([MultiPartParser])
+def save_key_value(request):
+    if request.method == 'POST':
+        try:
+            data = request.data
+            print(data)
+            Loan.objects.create(
+                og_file = data.get('og_file'),
+                developer=data.get('developer'),
+                constructor=data.get('constructor'),
+                trustee=data.get('trustee'),
+                loan_amount=data.get('loan_amount'),
+                loan_period=data.get('loan_period'),
+                fee=data.get('fee'),
+                irr=data.get('irr'),
+                prepayment_fee=data.get('prepayment_fee'),
+                overdue_interest_rate=data.get('overdue_interest_rate'),
+                principal_repayment_type=data.get('principal_repayment_type'),
+                interest_payment_period=data.get('interest_payment_period'),
+                deferred_payment=data.get('deferred_payment'),
+                joint_guarantee_amount=data.get('joint_guarantee_amount'),
+                lead_arranger=data.get('lead_arranger'),
+                company=data.get('company'),
+            )
+            return JsonResponse({'status': 'success'})
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})

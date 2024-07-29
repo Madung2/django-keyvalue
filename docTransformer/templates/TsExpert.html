@@ -34,6 +34,44 @@
       width: 100px; /* 적절한 크기로 변경하세요 */
       height: auto; /* 비율을 유지하며 크기 조정 */
     }
+
+    .popup {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 400px;
+      background-color: white;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .popup-content {
+      margin: 20px 0;
+    }
+
+    .popup .close {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      cursor: pointer;
+      font-size: 20px;
+    }
+
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 999;
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -42,13 +80,15 @@
     <div class="title-box">
       <h1>TSExpert</h1>
       <div class="btn-box">
+        <button onclick="openPopup()">다량문서업로드</button>
         <button class="btnGyLine" onclick="refreshPage()">초기화</button>
         <button class="btnGyLine">Logs</button>
-        <button onclick="handleDownload()">확정</button>
+        <button onclick="collectAndSaveKeyValue()">확정</button>
         <button onclick="handleDownload()">다운로드</button>
+        <button class="btnGyLine" onclick="renderAdmin()">Admin</button>
       </div>
     </div>
-    
+
     <div class="file-box">
       <form action="#">
         <div class="file-name">
@@ -76,7 +116,7 @@
     
           <div class="data-box">
 
-            <h2>데이터</h2>
+            <h2>데이터 </h2>
             <div class="table-box">
               <img id="loading-image" class="loading-image" src="{% static 'loading.svg' %}" alt="loading" />
               <table>
@@ -89,10 +129,46 @@
     </div>
   </div>
 
+  <!-- 팝업 오버레이 -->
+  <div class="overlay" id="overlay" onclick="closePopup()"></div>
+
+  <!-- 팝업 내용 -->
+  <div id="fileUploadPopup" class="popup">
+    <span class="close" onclick="closePopup()">&times;</span>
+    <div class="popup-content">
+      <div class="file-box">
+        <form action="#">
+          <div class="file-name">
+            <label for="fileInput2">파일 찾기</label>
+            <input type="file" id="fileInput2" name="fileInput2" multiple> 
+            <input class="upload-name" value="파일을 첨부해 주세요." placeholder="파일을 첨부해 주세요." readonly>
+          </div>
+        </form>
+      </div>
+
+  </div>
+
   <script>
     const HOST = '{{ HOST }}';
     //const HOST = 'doctransformer';
     const PORT = '{{ PORT }}';
+    const keyMapping = {
+    '시행사': 'developer',
+    '시공사': 'constructor',
+    '신탁사': 'trustee',
+    '당사여신금액': 'loan_amount',
+    '대출기간': 'loan_period',
+    '수수료': 'fee',
+    'IRR': 'irr',
+    '중도상환수수료': 'prepayment_fee',
+    '연채이자율': 'overdue_interest_rate',
+    '원금상환유형': 'principal_repayment_type',
+    '이자상환기한': 'interest_payment_period',
+    '상환후불여부': 'deferred_payment',
+    '연대보증금액': 'joint_guarantee_amount',
+    '금융주간사': 'lead_arranger',
+    '회사': 'company'
+};
     console.log('HOST:', HOST, 'PORT:', PORT)
 
     const getCookie = (name) => {
@@ -112,8 +188,58 @@
 
     const csrftoken = getCookie('csrftoken');
     console.log('csrftoken:', csrftoken)
+    const renderAdmin = () => {
+            window.open("{% url 'admin:index' %}", "_blank");
+        }
     //const PORT = '8081'
     const refreshPage = () => location.reload();
+
+    const collectAndSaveKeyValue = () => {
+        const tableBody = document.getElementById('tableBody');
+        const rows = tableBody.getElementsByTagName('tr');
+        const data = {};
+
+        for (let i = 0; i < rows.length; i++) {
+            const key = rows[i].getElementsByClassName('key')[0].textContent;
+            const value = rows[i].getElementsByClassName('value')[0].getElementsByTagName('input')[0].value;
+            const englishKey = keyMapping[key];
+            
+            data[englishKey] = value;
+        }
+        console.log('saveKeyValuedata:', data)
+        const fileInputValue = document.getElementById('fileInput').value;
+        data['og_file'] = fileInputValue; // 데이터를 'og_file' 키로 추가
+        saveKeyValue(data);
+    };
+
+    const saveKeyValue = (input_data) => {
+        console.log('input_data', input_data)
+        const formData = new FormData();
+        for (const key in input_data) {
+            if (input_data.hasOwnProperty(key)) {
+                formData.append(key, input_data[key]);
+            }
+        }
+        fetch('/ts_expert/save_key_value/', {
+            method: 'POST',
+            headers: {
+                //'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                console.log('Data saved successfully:', data);
+            } else {
+                console.error('Error saving data:', data);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    };
     document.addEventListener('DOMContentLoaded', () => {
       let uploadedFile = null; // 업로드된 파일을 저장할 변수
 
@@ -145,7 +271,30 @@
           console.error('Error while rendering docx preview', error);
         }
       };
-      
+      document.getElementById('fileInput2').addEventListener('change', async function(event) {
+        const files = event.target.files;
+        for (let i = 0; i < files.length; i++) {
+            console.log('File Name:', files[i].name);
+            console.log('File Size:', files[i].size);
+            console.log('File Type:', files[i].type);
+            
+            const formData = new FormData();
+            formData.append('file', files[i]);
+            const data = await fetchKeyValue(formData);
+            console.log('result',i,':', data)
+            const jsonResult = {};
+            data.forEach(subArray => {
+                const [key, value] = subArray;  // 배열의 첫 번째 요소는 키, 두 번째 요소는 값
+                const englishKey = keyMapping[key];
+                jsonResult[englishKey] = value;
+                jsonResult['og_file'] = files[i].name
+            });
+            console.log('jsonResult', jsonResult)
+            
+            saveKeyValue(jsonResult)
+            
+        }
+    });
       const fetchKeyValue = async (formData) => {
         try {
           console.log(`http://${HOST}:${PORT}/ts_expert/extract_key_value/`)
@@ -225,6 +374,27 @@
           tableBody.appendChild(row);
 
           row.addEventListener('click', (e) => handleRowClick(e, original_value, pos_idx));
+            // 더블 클릭하면 input을 편집 가능하도록 설정
+          input.addEventListener('dblclick', () => {
+            input.readOnly = false;
+            input.focus();
+          });
+
+          // 포커스를 잃으면(편집이 끝나면) input을 읽기 전용으로 설정하고 값 저장
+          input.addEventListener('blur', () => {
+            input.readOnly = true;
+            const newValue = input.value;
+            // 여기서 newValue를 저장하는 로직을 추가할 수 있습니다.
+            console.log(`New value for ${key}: ${newValue}`);
+            // 예를 들어, 서버에 변경된 값을 저장하는 AJAX 요청을 보낼 수 있습니다.
+          });
+
+          // Enter 키를 누르면 편집을 종료하고 값을 저장
+          input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+              input.blur();
+            }
+          });
         });
       };
       const saveNodesToFile = (nodes) => {
@@ -353,6 +523,16 @@
         }
       };
     });
+    const openPopup = () => {
+      document.getElementById('fileUploadPopup').style.display = 'block';
+      document.getElementById('overlay').style.display = 'block';
+    }
+
+    const closePopup = () => {
+      document.getElementById('fileUploadPopup').style.display = 'none';
+      document.getElementById('overlay').style.display = 'none';
+    }
+
   </script>
 </body>
 </html>
