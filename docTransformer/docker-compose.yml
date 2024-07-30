@@ -25,14 +25,20 @@ services:
     volumes:
       - shared_data:/data/
       - /var/run/docker.sock:/var/run/docker.sock
+      - db_data:/app/db
         #command: python docTransformer/manage.py runserver 0.0.0.0:80
     depends_on:
       - unoserver
     networks:
       - my_network
+    command: >
+      sh -c "python manage.py makemigrations &&
+             python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8501"
 
 volumes:
   shared_data:
+  db_data:
 
 networks:
   my_network:
