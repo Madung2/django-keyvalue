@@ -8,6 +8,37 @@ class KeyValue(models.Model):
     edited_at = models.DateTimeField("수정일자", auto_now=True)
 
 
+class MetaData(models.Model):
+    TYPE_CHOICES = [
+        ('string', 'String'),
+        ('name', 'Name'),
+        ('department', 'Department'),
+        ('year', 'Year'),
+        ('number', 'Number'),
+        ('date', 'Date'),
+        ('money', 'Money'),
+        ('percentage', 'Percentage'),
+        ('map', 'Map'),
+        ('company', 'Company'),
+    ]
+    id = models.AutoField(primary_key=True)
+    key = models.CharField(max_length=255, null=True, blank=True)
+    type = models.CharField(max_length=50,  choices=TYPE_CHOICES, null=True, blank=True, default='string')
+    is_table = models.BooleanField(default=True)
+    #synonym_priority = models.CharField(max_length=255, null=T/rue, blank=True)
+    synonym_all = models.CharField(max_length=600, null=True, blank=True, default="[]")
+    synonym_pattern = models.CharField(max_length=255, null=True, blank=True, default="[]")
+    sp_word = models.CharField(max_length=255, null=True, blank=True)
+    value = models.CharField(max_length=255,null=True, blank=True, default="[]")
+    split = models.CharField(max_length=255,null=True, blank=True, default="[]")
+    map = models.CharField(max_length=255, null=True, blank=True, default="{}")
+    in_use = models.BooleanField(default=True)
+    
+    def __str__(self):
+        return f'{self.key}'
+
+
+
 class Loan(models.Model):
     id = models.AutoField(primary_key=True)
     og_file = models.CharField('파일명', max_length=255)
@@ -31,3 +62,4 @@ class Loan(models.Model):
 
     def __str__(self):
         return f'{self.company} - {self.developer}'
+

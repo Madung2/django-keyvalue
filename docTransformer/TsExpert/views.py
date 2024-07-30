@@ -12,11 +12,12 @@ from rest_framework import status
 from .services.extract import KeyValueExtractor
 from .services.post_process import post_process
 from .services.convert_pdf import convert_doc_to_docx
-from .models import KeyValue, Loan
+from .models import KeyValue, Loan, MetaData
 from pdf2docx import Converter
 import os
 import tempfile
 import PyPDF2
+import json
 ##################################################
 
 from django.shortcuts import render
@@ -27,6 +28,10 @@ def render_tsexpert(req):
         'PORT': settings.PORT
     }
     return render(req, 'TsExpert.html', context)
+
+
+def render_docGenerator(req):
+    return render(req, 'docGenerator.html')
 
 def convert_pdf_to_docx(pdf_file):
     docx_file_path = 'temp_output.docx'
@@ -75,9 +80,37 @@ def get_key_value_data():
     print('lated_key_value:', latest_key_value.key_values)
     return latest_key_value.key_values
 
+def get_meta_data():
+    print('2:get_meta_data')
+    meta_data_objects = MetaData.objects.filter(in_use=True)
+    data = []
+    
+    for obj in meta_data_objects:
+        item = {
+            "key": obj.key,
+            "type": obj.type,
+            "is_table": obj.is_table,
+            "synonym": {
+                "priority": json.loads(obj.synonym_all),
+                "all": json.loads(obj.synonym_all),
+                "pattern": json.loads(obj.synonym_pattern)
+            },
+            "specific": bool(obj.sp_word),
+            "sp_word": obj.sp_word,
+            "value": json.loads(obj.value),
+            "split": json.loads(obj.split),
+            "map": json.loads(obj.map)
+        }
+        data.append(item)
+    print('latest metadata:', data)
+    return data
+
 def run_data_extract(file):
     print('1:run_data_extract')
-    key_value = get_key_value_data()
+    if settings.METATYPE ==2:
+        key_value = get_meta_data()
+    else:
+        key_value = get_key_value_data()
     print(dir(file))
     doc = Document(file)
     ext = KeyValueExtractor(doc, key_value)

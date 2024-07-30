@@ -24,7 +24,385 @@ body {
   color: #3C3C3C;
   box-sizing: border-box;
   font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif; 
+}:root{
+  --BG: #F7F7F7;
+  --white: #fff;
+  --Gray200: #F5F5F5;
+  --Gray300: #F0F0F0;
+  --Gray400: #DCDCDC;
+  --Gray700: #8C8C8C;
+  --Gray800: #787878;
+  --Gray900: #646464;
+  --Blue200: #F5FAFF;
+  --Blue300: #EBF4FF;
+  --Blue400: #DBEDFF;
+  --Blue700: #0A64FA;
+  --Blue800: #0452CF;
 }
+
+/* common css */
+body {
+  width: 100%;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  background-color: var(--BG);
+  font-size: 14px;
+  line-height: 1.5rem;
+  color: #3C3C3C;
+  box-sizing: border-box;
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif; 
+}
+.container {
+  padding: 0 1.5vw;
+  height: 100vh;
+  overflow: hidden;
+}
+input {
+  font-family: "Pretendard Variable"
+}
+input:focus {
+  /* outline: none; */
+  outline: 1px solid var(--Blue400);
+}
+input[type=file] {
+  display: none;
+}
+input[type=text] {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-radius: 2px;
+  border: 1px solid var(--Gray400);
+  padding: 4px 8px;
+  width: 95%;
+}
+input[type=text].regular {
+  padding: 8px 10px;
+}
+/* ==== scrollbar ==== */
+.pdf-box::-webkit-scrollbar,
+.table-box::-webkit-scrollbar,
+.list-box::-webkit-scrollbar {
+  width: 5px;  /* 스크롤바의 너비 */
+}
+
+.pdf-box::-webkit-scrollbar-thumb,
+.table-box::-webkit-scrollbar-thumb,
+.list-box::-webkit-scrollbar-thumb {
+  height: 30%; /* 스크롤바의 길이 */
+  background: var(--Gray400); /* 스크롤바의 색상 */
+  border-radius: 999px;
+  padding: 0.5vw;
+}
+
+.pdf-box::-webkit-scrollbar-track,
+.table-box::-webkit-scrollbar-track,
+.list-box::-webkit-scrollbar-track {
+  background: transparent;  /*스크롤바 뒷 배경 색상*/
+}
+
+/* button */
+button {
+  background-color: var(--Blue700);
+  color: #fff;
+  border: none;
+  height: 36px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: "Pretendard Variable";
+  transition: 0.25s;
+  font-weight: 500;
+}
+button:hover {
+  background-color: var(--Blue800);
+}
+button.btnGyLine {
+  background-color: var(--white);
+  color: var(--Gray900);
+  border: 1px solid var(--Gray400);
+}
+button.btnGyLine:hover {
+  background-color: var(--Gray300);
+}
+button.btnline {
+  background-color: var(--white);
+  color: var(--Blue700);
+  border: 1px solid var(--Blue700);
+}
+.btn-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+/* title-box */
+.title-box {
+  display: flex;
+  height: 36px;
+  padding: var(--8px, 8px);
+  padding-right: 0px;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+.title-box h1 {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* file-box */
+.file-box {
+  background-color: var(--white);
+  border: 1px solid var(--Gray400);
+  border-radius: 4px;
+  margin-bottom: 12px;
+  padding: 16px 16px;
+}
+.file-name {
+  display: flex;
+}
+.file-name label {
+  cursor: pointer;
+  transition: 0.25s;
+  background-color: var(--white);
+  color: var(--Blue700);
+  border: 1px solid var(--Blue700);
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 14px;
+}
+.file-name label:hover {
+  background-color: var(--Blue700);
+  color: var(--white);
+}
+.file-name .upload-name { 
+  width: 80%;
+  border: none;
+  color: #999;
+  margin-left: 1vw;    
+}
+.file-name .upload-name:focus {
+  border: none; 
+}
+
+/* result-box */
+.result-box {
+  /* display: flex; */
+  justify-content: first baseline;
+  gap: 12px;
+  height: calc(100vh - 23%);
+}
+.result-box .Initial-box {
+  display: flex;
+  /* display: none; */
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  flex: 1;
+  
+}
+.result-box .Initial-box span {
+  width: 24px;
+  height: 24px;
+  background-color: var(--Blue400);
+  border-radius: 4px;
+  margin-bottom: 20px;
+  color: var(--Blue700);
+}
+.result-box .Initial-box p {
+  font-family: "Pretendard Variable";
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--Gray800);
+}
+.result-box .item-box {
+  visibility: hidden;
+  height: 100%;
+}
+.result-box .item-box .item {
+  display: flex;
+  gap: 12px;
+  height: 100%;
+}
+.result-box .Initial-box,
+.result-box .view-box,
+.result-box .data-box {
+  border: 1px solid var(--Gray400); 
+  border-radius: 4px;
+  background-color: var(--white);
+  overflow: hidden;
+}
+.result-box .view-box {
+  flex: 2;
+}
+.result-box .data-box {
+  flex: 1;
+}
+.result-box h2 {
+  background-color: var(--Blue300);
+  padding: 8px 16px;
+  font-weight: 500;
+}
+.view-box .pdf-box,
+.data-box .table-box {
+  overflow-y: auto;
+  height: 94.5%;
+}
+.table-box table {
+  width: 100%;
+}
+.table-box table tr {
+  width: 100%;
+  border-bottom: 1px solid var(--Gray400);
+}
+.table-box table tr:hover {
+  background-color: var(--Gray300);
+  cursor: pointer;
+}
+.table-box table tr.active {
+  background-color: var(--Gray300);
+}
+.table-box table td {
+  padding: 12px 16px;
+}
+.table-box table td.key {
+  max-width: 20%;
+}
+.table-box table td.value {
+  max-width: 80%;
+}
+
+.data-box .list-box {
+  padding: 0.3vw 0.5vw;
+}
+.list-box .menu {
+  margin-bottom: 0.3vw;
+}
+.list-box .menu > a {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: 0.25s;
+}
+.list-box .menu > a:hover {
+  background-color: var(--Gray300);
+  border-radius: 4px;
+}
+.list-box .menu .hide {
+  padding: 0 25px;
+}
+li {
+  padding: 0;
+  margin: 0;
+}
+.list-box .menu .hide a {
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.list-box .hide a:hover {
+  text-decoration: underline;
+}
+.list-box .menu a span {
+  transition: 0.25s;
+  transform: rotate(90deg);
+}
+.list-box .menu a span.action {
+  transform: rotate(0deg);
+}
+
+/* form-box */
+.form-box {
+  background-color: var(--white);
+  border: 1px solid var(--Gray400);
+  border-radius: 4px;
+  margin-bottom: 12px;
+  padding: 16px 16px;
+}
+.form-box .tit {
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 500;
+  padding: 12px 5px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.file-drag {
+  margin-bottom: 20px;
+}
+.file-drag .file-name {
+  background-color: var(--Gray200);
+  border: 1px dashed var(--Gray400);
+  border-radius: 4px;
+  padding: 30px;
+  color: var(--Gray700);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.file-drag .file-name:hover label {
+  text-decoration: underline;
+}
+.file-drag label {
+  border: none;
+  background-color: transparent;
+  color: var(--Gray700);
+}
+.file-drag label:hover {
+  background-color: transparent;
+  color: var(--Blue700);
+}
+.file-drag input.upload-name {
+  width: 98.77%;
+  border-radius: var(--4px, 4px);
+  border: 1px solid var(--Gray400);
+  background: var(--Gray300);
+  color: var(--Gray700);
+  display: none;
+}
+
+/* info-box : table */
+.info-box .table {
+  margin-bottom: 20px;
+  border-top: 1px solid var(--Gray400);
+}
+.info-box table {
+  width: 100%;
+  border-bottom: 1px solid var(--Gray400);
+  border-collapse: separate;
+  border-spacing: 0 20px;
+}
+.info-box table tr {
+  border: 1px solid #000;
+  width: 100%;
+}
+.info-box table th {
+  font-weight: 500;
+  color: var(--Gray1100);
+  text-align: left;
+  padding: 0 0 0 60px;
+}
+.info-box table td {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 0 20px 0 0;
+}
+.info-box table td label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
 .container {
   padding: 0 1.5vw;
   height: 100vh;

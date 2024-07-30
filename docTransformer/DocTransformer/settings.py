@@ -29,7 +29,8 @@ environ.Env.read_env(env_file=BASE_DIR / '.env')
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 HOST = env('HOST')
 PORT = env('PORT')
-print('HOST', HOST, 'PORT', PORT)
+METATYPE = env.int('METATYPE',2)
+print('HOST', HOST, 'PORT', PORT, 'MetaType', METATYPE)
 SECRET_KEY = env('SECRET_KEY')
 DEBUG = env('DEBUG')
 ALLOWED_HOSTS = ['*']
