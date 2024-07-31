@@ -91,8 +91,8 @@ class Rules(models.Model):
     final_text = models.TextField("결과텍스트", null=True, blank=True)
     highlight = models.BooleanField("하이라이트 여부", default=False, null=True, blank=True)
  
-    상환후불여부 = models.CharField(max_length=30, choices=PAYMENT_OPTION, null=True, blank=True)
-    원금상환여부 = models.CharField(max_length=30, choices=REPAYMENT_TYPE, null=True, blank=True)
+    deferred_payment = models.CharField('상환후불여부', max_length=30, choices=PAYMENT_OPTION, null=True, blank=True)
+    principal_repayment_type = models.CharField('원금상환여부', max_length=30, choices=REPAYMENT_TYPE, null=True, blank=True)
     def __str__(self):
         return f'{self.template_idx}______________{self.final_text}'
 
