@@ -3,7 +3,7 @@ from docx import Document
 from docx.shared import Pt, Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH,WD_COLOR_INDEX
 from docx.shared import RGBColor
-from TsExpert.models import Template
+from TsExpert.models import Template, Rules
 from rest_framework.response import Response
 import re
 import io
@@ -239,17 +239,47 @@ class DocxGenerator:
     def get_replacement_text(self, target, name, address, company_name):
         test_highlight = False
         if target.isdigit():
-            pass
+            print('is_digit')
+            
+
+            # 1. if Target is index number                
+            rules = Rules.objects.filter(template_idx=int(target))
+            print('rules')
+            print(rules)
+            
+            for rule in rules:
+                IS_TARGET = True
+                for k, v  in rule['types'].items():
+                    print('k:', k , 'v:', v )
+                    ## 먼저 value를 영어화 한다
+                    if type(v)!=bool and v in ALL_VALS.keys():
+                        v = ALL_VALS[v]
+
+                    if k.startswith('term'):                        
+                        if 'other' in self.data and k.replace('term_', '') in self.data['other']:
+                            IS_TARGET = True
+                        else:
+                            IS_TARGET = False
+                            break
+                    else:
+                        if self.data[k] == v:
+                            IS_TARGET = True
+                        else:
+                            IS_TARGET = False
+                            break
+                if IS_TARGET:
+                    highlight_value = rule['highlight'] if 'highlight' in rule else False                
+                    return self.edit_res_text(rule['final_text']), highlight_value
+
+            return '', False
         else:
             eng_target = keyMapping[target]
             print(self.data)
             print('eng:', eng_target)
             if eng_target in self.data:
-                
                 return self.data[eng_target], False
-            else:
-                return '' , False
-        
+
+
     #     if target in ['fund_name']:
     #         return f"<b>{self.data[target]}</b>", False
     #     elif target == 'business_number':
@@ -314,36 +344,36 @@ class DocxGenerator:
     #         return representative, False
 
         
-    #     elif target.isdigit():
+        # elif target.isdigit():
             
 
-    #         # 1. if Target is index number                
-    #         rules = Rules.objects.filter(template_idx=int(target))
-    #         rule_data = RegularContractSerializer(rules, many=True).data
-    #         for rule in rule_data:
-    #             IS_TARGET = True
-    #             for k, v  in rule['types'].items():
-    #                 ## 먼저 value를 영어화 한다
-    #                 if type(v)!=bool and v in ALL_VALS.keys():
-    #                     v = ALL_VALS[v]
+        #     # 1. if Target is index number                
+        #     rules = Rules.objects.filter(template_idx=int(target))
+        #     rule_data = RegularContractSerializer(rules, many=True).data
+        #     for rule in rule_data:
+        #         IS_TARGET = True
+        #         for k, v  in rule['types'].items():
+        #             ## 먼저 value를 영어화 한다
+        #             if type(v)!=bool and v in ALL_VALS.keys():
+        #                 v = ALL_VALS[v]
 
-    #                 if k.startswith('term'):                        
-    #                     if 'other' in self.data and k.replace('term_', '') in self.data['other']:
-    #                         IS_TARGET = True
-    #                     else:
-    #                         IS_TARGET = False
-    #                         break
-    #                 else:
-    #                     if self.data[k] == v:
-    #                         IS_TARGET = True
-    #                     else:
-    #                         IS_TARGET = False
-    #                         break
-    #             if IS_TARGET:
-    #                 highlight_value = rule['highlight'] if 'highlight' in rule else False                
-    #                 return self.edit_res_text(rule['final_text']), highlight_value
+        #             if k.startswith('term'):                        
+        #                 if 'other' in self.data and k.replace('term_', '') in self.data['other']:
+        #                     IS_TARGET = True
+        #                 else:
+        #                     IS_TARGET = False
+        #                     break
+        #             else:
+        #                 if self.data[k] == v:
+        #                     IS_TARGET = True
+        #                 else:
+        #                     IS_TARGET = False
+        #                     break
+        #         if IS_TARGET:
+        #             highlight_value = rule['highlight'] if 'highlight' in rule else False                
+        #             return self.edit_res_text(rule['final_text']), highlight_value
 
-    #         return '', False
+        #     return '', False
 
     #     elif "." in target:
             

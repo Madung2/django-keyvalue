@@ -82,7 +82,22 @@ class Template(models.Model):
 
 
 class Rules(models.Model):
+    PAYMENT_OPTION = [('후불', '후불'), ('선불', '선불')]
+    REPAYMENT_TYPE = [('균등분할상환', '균등분할상환'), ('만기일시상환', '만기일시상환')]
+
+
     id = models.AutoField(primary_key=True)
+    template_idx = models.IntegerField("템플릿위치 인덱스", default=0)
+    final_text = models.TextField("결과텍스트", null=True, blank=True)
+    highlight = models.BooleanField("하이라이트 여부", default=False, null=True, blank=True)
+ 
+    상환후불여부 = models.CharField(max_length=30, choices=PAYMENT_OPTION, null=True, blank=True)
+    원금상환여부 = models.CharField(max_length=30, choices=REPAYMENT_TYPE, null=True, blank=True)
+    def __str__(self):
+        return f'{self.template_idx}______________{self.final_text}'
+
+
+
 
 
 

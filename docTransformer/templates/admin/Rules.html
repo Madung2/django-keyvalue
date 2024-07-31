@@ -1,0 +1,12 @@
+{% extends "admin/change_form.html" %}
+{% load static %}
+
+<!-- {% block extrahead %}
+{{ block.super }}
+<script src="{% static 'your_app/js/custom_script.js' %}"></script>
+{% endblock %} -->
+
+{% block submit_buttons_bottom %}
+{{ block.super }}
+<button type="button" class="button" id="custom-button">Custom Button</button>
+{% endblock %}
