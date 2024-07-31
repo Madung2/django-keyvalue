@@ -231,8 +231,6 @@ def run_generator(request):
     print('data', res_data)
     gen = DocxGenerator(res_data, 3)
     buf, doc = gen.create_document()
-    print('########################')
-    doc.save('완성2.docx')
     if buf is None:
         return Response({"error": "buf not made"}, status=status.HTTP_400_BAD_REQUEST)
     else:
