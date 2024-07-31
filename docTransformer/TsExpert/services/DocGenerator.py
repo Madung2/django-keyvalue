@@ -3,7 +3,8 @@ from docx import Document
 from docx.shared import Pt, Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH,WD_COLOR_INDEX
 from docx.shared import RGBColor
-from TsExpert.models import Template
+from TsExpert.models import Template, Rules
+from TsExpert.serializers import RulesSerializer
 from rest_framework.response import Response
 import re
 import io
@@ -239,17 +240,50 @@ class DocxGenerator:
     def get_replacement_text(self, target, name, address, company_name):
         test_highlight = False
         if target.isdigit():
-            pass
+            print('is_digit')
+            
+
+            # 1. if Target is index number                
+            rules = Rules.objects.filter(template_idx=int(target))
+            rule_data = RulesSerializer(rules, many=True).data
+            print('rules')
+            print(rules)
+            print('rule_data')
+            print(rule_data)
+            
+            for rule in rule_data:
+                IS_TARGET = True
+                for k, v  in rule['types'].items():
+                    print('k:', k , 'v:', v )
+                    ## 먼저 value를 영어화 한다
+                    # if type(v)!=bool and v in ALL_VALS.keys():
+                    #     v = ALL_VALS[v]
+
+                    if k.startswith('term'):                        
+                        if 'other' in self.data and k.replace('term_', '') in self.data['other']:
+                            IS_TARGET = True
+                        else:
+                            IS_TARGET = False
+                            break
+                    else:
+                        if self.data[k] == v:
+                            IS_TARGET = True
+                        else:
+                            IS_TARGET = False
+                            break
+                if IS_TARGET:
+                    highlight_value = rule['highlight'] if 'highlight' in rule else False                
+                    return self.edit_res_text(rule['final_text']), highlight_value
+
+            return '', False
         else:
             eng_target = keyMapping[target]
             print(self.data)
             print('eng:', eng_target)
             if eng_target in self.data:
-                
                 return self.data[eng_target], False
-            else:
-                return '' , False
-        
+
+
     #     if target in ['fund_name']:
     #         return f"<b>{self.data[target]}</b>", False
     #     elif target == 'business_number':
@@ -314,36 +348,36 @@ class DocxGenerator:
     #         return representative, False
 
         
-    #     elif target.isdigit():
+        # elif target.isdigit():
             
 
-    #         # 1. if Target is index number                
-    #         rules = Rules.objects.filter(template_idx=int(target))
-    #         rule_data = RegularContractSerializer(rules, many=True).data
-    #         for rule in rule_data:
-    #             IS_TARGET = True
-    #             for k, v  in rule['types'].items():
-    #                 ## 먼저 value를 영어화 한다
-    #                 if type(v)!=bool and v in ALL_VALS.keys():
-    #                     v = ALL_VALS[v]
+        #     # 1. if Target is index number                
+        #     rules = Rules.objects.filter(template_idx=int(target))
+        #     rule_data = RegularContractSerializer(rules, many=True).data
+        #     for rule in rule_data:
+        #         IS_TARGET = True
+        #         for k, v  in rule['types'].items():
+        #             ## 먼저 value를 영어화 한다
+        #             if type(v)!=bool and v in ALL_VALS.keys():
+        #                 v = ALL_VALS[v]
 
-    #                 if k.startswith('term'):                        
-    #                     if 'other' in self.data and k.replace('term_', '') in self.data['other']:
-    #                         IS_TARGET = True
-    #                     else:
-    #                         IS_TARGET = False
-    #                         break
-    #                 else:
-    #                     if self.data[k] == v:
-    #                         IS_TARGET = True
-    #                     else:
-    #                         IS_TARGET = False
-    #                         break
-    #             if IS_TARGET:
-    #                 highlight_value = rule['highlight'] if 'highlight' in rule else False                
-    #                 return self.edit_res_text(rule['final_text']), highlight_value
+        #             if k.startswith('term'):                        
+        #                 if 'other' in self.data and k.replace('term_', '') in self.data['other']:
+        #                     IS_TARGET = True
+        #                 else:
+        #                     IS_TARGET = False
+        #                     break
+        #             else:
+        #                 if self.data[k] == v:
+        #                     IS_TARGET = True
+        #                 else:
+        #                     IS_TARGET = False
+        #                     break
+        #         if IS_TARGET:
+        #             highlight_value = rule['highlight'] if 'highlight' in rule else False                
+        #             return self.edit_res_text(rule['final_text']), highlight_value
 
-    #         return '', False
+        #     return '', False
 
     #     elif "." in target:
             
@@ -561,31 +595,6 @@ class DocxGenerator:
         
         #########################post process############################################
 
-        # if self.contract_type == '신탁계약서':
-        #     for para in doc.paragraphs:
-        #         if '[[remove]]' in para.text:
-        #             utils.delete_paragraph(para)
-        # #NH투자증권 볼드
-        #     # utils.bold_target_text(doc, '(시행일)', '부 칙')
-        #     # doc = utils.split_one_paragraph_into_many(doc)
-        #     # utils.format_numbered_paragraphs(doc,max_line_length) #=> 53으로 커팅하는것
-        #     # utils.apply_distinctive_indentation(doc)
-        #     # utils.apply_space_indentation(doc)
-        #     # doc = utils.adjust_alignment_based_on_index(doc)
-        #     # utils.align_paragraphs_to_right(doc, '집합투자업자')
-        #     # utils.align_paragraphs_to_center(doc, '부 칙')
-        #     # doc.save('testing_remove_empty.docx')
-        #     # utils.remove_empty_paragraph(doc)
-        #     # for table_key, table in table_inputs.items():
-        #         # utils.add_html_content_to_docx_at_placeholder(doc, table_key, table)
-        #     # utils.change_section_and_margin(doc)
-        #     ##
-        # else: # 전담중개업무계약서 날인 페이지 서식 적용
-        #     print('upd1')
-        #     utils.bold_and_underline_brackets(doc)
-        #     utils.set_font_size_if_no_large_fonts(doc)
-        #     utils.center_align_paragraph_with_pattern(doc, r"\d{4}\. \d{2}\. \d{2}\.")
-        #     utils.apply_bold_and_font_size(doc, '회 사')
 
         
         

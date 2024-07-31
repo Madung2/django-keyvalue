@@ -91,7 +91,7 @@
       </div>
     </div>
 
-    <div class="file-box">
+    <div class="file-box" id="drop-zone">
       <form action="#">
         <div class="file-name">
           <label for="fileInput">파일 찾기</label>
@@ -171,6 +171,36 @@
     '금융주간사': 'lead_arranger',
     '회사': 'company'
 };
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('fileInput');
+    const uploadName = document.querySelector('.upload-name');
+
+    dropZone.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    dropZone.addEventListener('dragover', (event) => {
+      event.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', (event) => {
+      event.preventDefault();
+      dropZone.classList.remove('dragover');
+      const files = event.dataTransfer.files;
+      if (files.length > 0) {
+        fileInput.files = files;
+        uploadName.value = files[0].name;
+        const event = new Event('change');
+        fileInput.dispatchEvent(event);
+      }
+    });
+
+
 
     console.log('HOST:', HOST, 'PORT:', PORT)
 
@@ -486,6 +516,7 @@
       };
 
       $("#fileInput").on('change', async function(event) {
+        console.log('fileInput on change')
         var fileName = $(this).val().split("\\").pop();
         $(".upload-name").val(fileName);
 
