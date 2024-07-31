@@ -282,6 +282,8 @@ class DocxGenerator:
             print('eng:', eng_target)
             if eng_target in self.data:
                 return self.data[eng_target], False
+            else:
+                return '', False
 
 
     #     if target in ['fund_name']:
