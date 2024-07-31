@@ -217,6 +217,10 @@ class KeyValueExtractor:
         :return: 추출된 모든 데이터의 리스트.
         """
         table_data = self.process_tables()  # 테이블 데이터 처리
+        table_data = self.add_not_extracted_column(table_data)
+
+
+
         # if not table_data:
         #     print('Extracting table data from PDF...')  # 테이블 데이터가 없으면 PDF에서 데이터 추출 시도
         #     table_data = self.extract_table_data_from_pdf()
@@ -225,6 +229,13 @@ class KeyValueExtractor:
         self.data += table_data  # 추출된 테이블 데이터를 데이터 리스트에 추가
         return self.data  # 최종 데이터를 반환
     
+    def add_not_extracted_column(self, table_data):
+        all_extracted_keys = [k for [k, v, pos] in table_data]
+        for a in self.all_keys: 
+            if a not in all_extracted_keys:
+                table_data.append([a, '', 0])
+        return table_data
+
     @staticmethod
     def remove_duplication(data):
 
@@ -236,3 +247,5 @@ class KeyValueExtractor:
                 unique_data.append(ele)  # 결과 리스트에도 요소 추가
         
         return unique_data
+    
+    
