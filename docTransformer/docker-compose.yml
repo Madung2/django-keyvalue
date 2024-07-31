@@ -25,7 +25,7 @@ services:
     volumes:
       - shared_data:/data/
       - /var/run/docker.sock:/var/run/docker.sock
-      - db_data:/app/db
+      - ./db.sqlite3:/app/db.sqlite3
         #command: python docTransformer/manage.py runserver 0.0.0.0:80
     depends_on:
       - unoserver

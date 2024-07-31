@@ -1,5 +1,3 @@
-HOST localhost PORT 8000 MetaType 2
-urlpatterns: [<URLPattern '' [name='render_tsexpert']>, <URLPattern 'gen/' [name='render_docGenerator']>, <URLPattern 'extract_key_value/' [name='extract_key_value']>, <URLPattern 'extract_xl/' [name='extract_xl']>, <URLPattern 'save_key_value/' [name='save_key_value']>, <URLPattern '^(?P<path>.*)$'>]
 [
 {
     "model": "TsExpert.metadata",
