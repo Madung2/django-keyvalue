@@ -12,8 +12,10 @@ from rest_framework import status
 from .services.extract import KeyValueExtractor
 from .services.post_process import post_process
 from .services.convert_pdf import convert_doc_to_docx
-from .models import KeyValue, Loan, MetaData
+from .services.DocGenerator import DocxHTMLParser, DocxGenerator
+from .models import KeyValue, Loan, MetaData, Template
 from pdf2docx import Converter
+from django.http import HttpResponse
 import os
 import tempfile
 import PyPDF2
@@ -120,6 +122,31 @@ def run_data_extract(file):
     final_data = post_process(data, key_value)
     return final_data
 
+
+def get_loan_data():
+    print('2:get_key_value_data')
+    loan = Loan.objects.order_by('-created_at').first()
+    data = {
+        'developer': loan.developer,
+        'constructor': loan.constructor,
+        'trustee': loan.trustee,
+        'loan_amount': loan.loan_amount,
+        'loan_period': loan.loan_period,
+        'fee': loan.fee,
+        'irr': loan.irr,
+        'prepayment_fee': loan.prepayment_fee,
+        'overdue_interest_rate': loan.overdue_interest_rate,
+        'principal_repayment_type': loan.principal_repayment_type,
+        'interest_payment_period': loan.interest_payment_period,
+        'deferred_payment': loan.deferred_payment,
+        'joint_guarantee_amount': loan.joint_guarantee_amount,
+        'lead_arranger': loan.lead_arranger,
+        'company': loan.company,
+    }
+    print('data=', data)
+    return data
+
+
 @csrf_exempt
 @api_view(['POST'])
 @parser_classes([MultiPartParser])
@@ -191,7 +218,29 @@ def extract_key_value(request):
             if title =='이자상환기한':
                 result[i] = ['이자상환기한', '10', '10', ele3]
                 break
+
     return JsonResponse(result, safe=False)
+
+
+@csrf_exempt
+@api_view(['POST'])
+@parser_classes([MultiPartParser])
+def run_generator(request):
+    print('########################')
+    res_data = get_loan_data()
+    print('data', res_data)
+    gen = DocxGenerator(res_data, 3)
+    buf, doc = gen.create_document()
+    print('########################')
+    doc.save('완성2.docx')
+    if buf is None:
+        return Response({"error": "buf not made"}, status=status.HTTP_400_BAD_REQUEST)
+    else:
+        response = HttpResponse(buf, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+        response['Content-Disposition'] = 'attachment; filename="res.docx"'
+        return response
+
+    
 
 @csrf_exempt
 @api_view(['POST'])
@@ -253,3 +302,4 @@ def save_key_value(request):
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+

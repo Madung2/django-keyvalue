@@ -87,6 +87,7 @@
         <button onclick="handleDownload()">다운로드</button>
         <button onclick="collectAndSaveKeyValue()">저장</button>
         <button class="btnGyLine" onclick="renderAdmin()">Admin</button>
+        <button onclick="runGenerator()">DocGen</button>
       </div>
     </div>
 
@@ -170,6 +171,7 @@
     '금융주간사': 'lead_arranger',
     '회사': 'company'
 };
+
     console.log('HOST:', HOST, 'PORT:', PORT)
 
     const getCookie = (name) => {
@@ -266,12 +268,13 @@
             renderEndnotes: true,
             renderComments: true,
             debug: false,
-        });
+          });
           console.log("docx: finished");
         } catch (error) {
           console.error('Error while rendering docx preview', error);
         }
       };
+
       document.getElementById('fileInput2').addEventListener('change', async function(event) {
         const files = event.target.files;
         for (let i = 0; i < files.length; i++) {
@@ -317,6 +320,7 @@
           throw error;
         }
       };
+
 
       const fetchExel = async (formData) => {
         try {
@@ -533,7 +537,47 @@
       document.getElementById('fileUploadPopup').style.display = 'none';
       document.getElementById('overlay').style.display = 'none';
     }
+    const runGenerator = () =>{
+      fetchGenerator()
+    }
+    const fetchGenerator = () => {
+    console.log('runGen start');
 
+    // formData와 csrftoken이 이미 정의되어 있다고 가정합니다.
+    const formData = new FormData();
+    // formData.append('key', 'value'); // 필요한 데이터를 formData에 추가하세요.
+    // const csrftoken = 'your-csrf-token'; // CSRF 토큰 값을 설정하세요.
+
+    fetch('/ts_expert/run_generator/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken
+        },
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(errorData => {
+                throw new Error(`Error saving data: ${errorData.error}`);
+            });
+        }
+        return response.blob();
+    })
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'res.docx'; // 다운로드할 파일 이름
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        console.log('File downloaded successfully');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+};
   </script>
 </body>
 </html>

@@ -218,9 +218,6 @@ class KeyValueExtractor:
         """
         table_data = self.process_tables()  # 테이블 데이터 처리
         table_data = self.add_not_extracted_column(table_data)
-
-
-
         # if not table_data:
         #     print('Extracting table data from PDF...')  # 테이블 데이터가 없으면 PDF에서 데이터 추출 시도
         #     table_data = self.extract_table_data_from_pdf()

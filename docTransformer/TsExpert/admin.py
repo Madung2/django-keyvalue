@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.db import models
 from django.forms import Textarea
-from .models import KeyValue, Loan, MetaData
+from .models import KeyValue, Loan, MetaData,Template
 
 class KeyValueAdmin(admin.ModelAdmin):
     list_display = ('title', 'created_at', 'edited_at') 
@@ -23,3 +23,4 @@ class MetaDataAdmin(admin.ModelAdmin):
 admin.site.register(KeyValue, KeyValueAdmin)
 admin.site.register(Loan, LoanAdmin)
 admin.site.register(MetaData, MetaDataAdmin)
+admin.site.register(Template)
