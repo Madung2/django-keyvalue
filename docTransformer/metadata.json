@@ -1,0 +1,244 @@
+HOST localhost PORT 8000 MetaType 2
+urlpatterns: [<URLPattern '' [name='render_tsexpert']>, <URLPattern 'gen/' [name='render_docGenerator']>, <URLPattern 'extract_key_value/' [name='extract_key_value']>, <URLPattern 'extract_xl/' [name='extract_xl']>, <URLPattern 'save_key_value/' [name='save_key_value']>, <URLPattern '^(?P<path>.*)$'>]
+[
+{
+    "model": "TsExpert.metadata",
+    "pk": 1,
+    "fields": {
+        "key": "대출종류",
+        "type": "string",
+        "is_table": true,
+        "synonym_all": "[\"대출과목(대출종류)\"]",
+        "synonym_pattern": "[]",
+        "sp_word": null,
+        "value": "[]",
+        "split": "[]",
+        "map": "{}",
+        "in_use": true
+    }
+},
+{
+    "model": "TsExpert.metadata",
+    "pk": 2,
+    "fields": {
+        "key": "대출금액",
+        "type": "number",
+        "is_table": true,
+        "synonym_all": "[\"대출금액\", \"대출액\"]",
+        "synonym_pattern": "[]",
+        "sp_word": null,
+        "value": "[]",
+        "split": "[]",
+        "map": "{}",
+        "in_use": true
+    }
+},
+{
+    "model": "TsExpert.metadata",
+    "pk": 3,
+    "fields": {
+        "key": "시행사",
+        "type": "string",
+        "is_table": true,
+        "synonym_all": "[\"시행사\",\"차주(시행사)\"]",
+        "synonym_pattern": "[]",
+        "sp_word": null,
+        "value": "[]",
+        "split": "[]",
+        "map": "{}",
+        "in_use": true
+    }
+},
+{
+    "model": "TsExpert.metadata",
+    "pk": 4,
+    "fields": {
+        "key": "시공사",
+        "type": "string",
+        "is_table": true,
+        "synonym_all": "[\"시공사\"]",
+        "synonym_pattern": "[]",
+        "sp_word": null,
+        "value": "[]",
+        "split": "[]",
+        "map": "{}",
+        "in_use": true
+    }
+},
+{
+    "model": "TsExpert.metadata",
+    "pk": 5,
+    "fields": {
+        "key": "신탁사",
+        "type": "string",
+        "is_table": true,
+        "synonym_all": "[\"신탁사\"]",
+        "synonym_pattern": "[]",
+        "sp_word": null,
+        "value": "[]",
+        "split": "[]",
+        "map": "{}",
+        "in_use": true
+    }
+},
+{
+    "model": "TsExpert.metadata",
+    "pk": 6,
+    "fields": {
+        "key": "당사여신금액",
+        "type": "money",
+        "is_table": true,
+        "synonym_all": "[\"여신 조건\"]",
+        "synonym_pattern": "[]",
+        "sp_word": "당사",
+        "value": "[]",
+        "split": "[]",
+        "map": "{}",
+        "in_use": true
+    }
+},
+{
+    "model": "TsExpert.metadata",
+    "pk": 7,
+    "fields": {
+        "key": "대출기간",
+        "type": "number",
+        "is_table": true,
+        "synonym_all": "[\"대출기간\"]",
+        "synonym_pattern": "[]",
+        "sp_word": null,
+        "value": "[]",
+        "split": "[]",
+        "map": "{}",
+        "in_use": true
+    }
+},
+{
+    "model": "TsExpert.metadata",
+    "pk": 8,
+    "fields": {
+        "key": "수수료",
+        "type": "money",
+        "is_table": true,
+        "synonym_all": "[\"수수료\"]",
+        "synonym_pattern": "[]",
+        "sp_word": null,
+        "value": "[]",
+        "split": "[]",
+        "map": "{}",
+        "in_use": true
+    }
+},
+{
+    "model": "TsExpert.metadata",
+    "pk": 9,
+    "fields": {
+        "key": "IRR",
+        "type": "percentage",
+        "is_table": true,
+        "synonym_all": "[\"IRR / 표준RW\"]",
+        "synonym_pattern": "[]",
+        "sp_word": null,
+        "value": "[]",
+        "split": "[]",
+        "map": "{}",
+        "in_use": true
+    }
+},
+{
+    "model": "TsExpert.metadata",
+    "pk": 10,
+    "fields": {
+        "key": "중도상환수수료",
+        "type": "percentage",
+        "is_table": true,
+        "synonym_all": "[\"중도상환수수료\"]",
+        "synonym_pattern": "[]",
+        "sp_word": null,
+        "value": "[]",
+        "split": "[]",
+        "map": "{}",
+        "in_use": true
+    }
+},
+{
+    "model": "TsExpert.metadata",
+    "pk": 11,
+    "fields": {
+        "key": "연체이자율",
+        "type": "string",
+        "is_table": true,
+        "synonym_all": "[\"연체이자율\", \"지연배상금율\"]",
+        "synonym_pattern": "[]",
+        "sp_word": null,
+        "value": "[]",
+        "split": "[]",
+        "map": "{}",
+        "in_use": true
+    }
+},
+{
+    "model": "TsExpert.metadata",
+    "pk": 12,
+    "fields": {
+        "key": "원금상환유형",
+        "type": "string",
+        "is_table": true,
+        "synonym_all": "[\"상환방법 및상환자원\", \"원금/이자상환방법\"]",
+        "synonym_pattern": "[]",
+        "sp_word": "원금",
+        "value": "[]",
+        "split": "[\"\\n\"]",
+        "map": "{}",
+        "in_use": true
+    }
+},
+{
+    "model": "TsExpert.metadata",
+    "pk": 13,
+    "fields": {
+        "key": "상환후불여부",
+        "type": "map",
+        "is_table": true,
+        "synonym_all": "[\"상환방법 및상환자원\", \"원금/이자상환방법\"]",
+        "synonym_pattern": "[]",
+        "sp_word": "이자",
+        "value": "[]",
+        "split": "[\"\\n\"]",
+        "map": "{\"후취\": \"후불\", \"선취\": \"선불\", \"후불\": \"후불\", \"선불\": \"선불\"}",
+        "in_use": true
+    }
+},
+{
+    "model": "TsExpert.metadata",
+    "pk": 14,
+    "fields": {
+        "key": "연대보증금액",
+        "type": "percentage",
+        "is_table": true,
+        "synonym_all": "[\"채권보전\"]",
+        "synonym_pattern": "[]",
+        "sp_word": "연대보증",
+        "value": "[]",
+        "split": "[\"\\n\"]",
+        "map": "{}",
+        "in_use": true
+    }
+},
+{
+    "model": "TsExpert.metadata",
+    "pk": 15,
+    "fields": {
+        "key": "금융주간사",
+        "type": "string",
+        "is_table": true,
+        "synonym_all": "[\"금융주간사\"]",
+        "synonym_pattern": "[]",
+        "sp_word": null,
+        "value": "[]",
+        "split": "[]",
+        "map": "{}",
+        "in_use": true
+    }
+}
+]
