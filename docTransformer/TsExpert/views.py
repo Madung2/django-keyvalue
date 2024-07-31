@@ -126,6 +126,8 @@ def run_data_extract(file):
 def get_loan_data():
     print('2:get_key_value_data')
     loan = Loan.objects.order_by('-created_at').first()
+    if not loan:
+        return {}
     data = {
         'developer': loan.developer,
         'constructor': loan.constructor,
