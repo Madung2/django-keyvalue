@@ -320,5 +320,5 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
-
+db.sqlite3
 # End of https://www.toptal.com/developers/gitignore/api/python,linux,windows,visualstudiocode,djangodocTransformer/db.sqlite3
