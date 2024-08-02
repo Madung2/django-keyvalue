@@ -615,7 +615,8 @@
     }
     const runGenerator = () =>{
       fetchGenerator()
-      showMessage(`파일명을 사용해 DocGen이 성공적으로 생성되었습니다`)
+      // showMessage(`파일명을 사용해 DocGen이 성공적으로 생성되었습니다`)
+      fetchGeneratorData()
     }
     const showMessage = (message) => {
       console.log(message)
@@ -638,8 +639,8 @@
         setTimeout(() => {
           document.body.removeChild(messageBox);
           console.log('Message box removed');
-        }, 6000); // Wait for the transition to complete before removing
-      }, 3000);
+        }, 2000); // Wait for the transition to complete before removing
+      }, 20000);
     };
     const fetchGenerator = () => {
     console.log('runGen start');
@@ -677,6 +678,34 @@
     })
     .catch(error => {
         console.error('Error:', error);
+    });
+};
+const fetchGeneratorData = () => {
+
+    fetch('/ts_expert/run_generator_data/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(errorData => {
+                throw new Error(`Error fetching data: ${errorData.error}`);
+            });
+        }
+        return response.json();
+    })
+    .then(resData => {
+        console.log('Data received:', resData);
+        // Handle the received data
+        // showMessage(`Received data: ${JSON.stringify(resData)}`);
+        showMessage(`${resData.og_file}을(를) 기준으로 생성`);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage(`Error: ${error.message}`);
     });
 };
   </script>
