@@ -16,14 +16,22 @@ class LoanAdmin(admin.ModelAdmin):
         'interest_payment_period', 'deferred_payment', 'joint_guarantee_amount',
         'lead_arranger', 'company', 'created_at'
     )
+    class Meta:
+        verbose_name = "Job 로그"
+        verbose_name_plural = "Job 로그"
 
 class MetaDataAdmin(admin.ModelAdmin):
     list_display = ('key', 'type', 'synonym_all', 'sp_word', 'in_use') 
-
+    class Meta:
+        verbose_name = "사전"
+        verbose_name_plural = "사전"
 
 class RulesAdmin(admin.ModelAdmin):
     change_form_template = "admin/Rules.html"
-admin.site.register(KeyValue, KeyValueAdmin)
+    class Meta:
+        verbose_name = "조건정의"
+        verbose_name_plural = "조건정의"
+#admin.site.register(KeyValue, KeyValueAdmin)
 admin.site.register(Loan, LoanAdmin)
 admin.site.register(MetaData, MetaDataAdmin)
 admin.site.register(Template)

@@ -9,6 +9,9 @@ class KeyValue(models.Model):
 
 
 class MetaData(models.Model):
+    class Meta:
+        verbose_name = "사전"
+        verbose_name_plural = "사전"
     TYPE_CHOICES = [
         ('string', 'String'),
         ('name', 'Name'),
@@ -40,6 +43,9 @@ class MetaData(models.Model):
 
 
 class Loan(models.Model):
+    class Meta:
+        verbose_name = "Job 로그"
+        verbose_name_plural = "Job 로그"
     id = models.AutoField(primary_key=True)
     og_file = models.CharField('파일명', max_length=255)
     developer = models.CharField('시행사', max_length=255, null=True, blank=True)
@@ -82,6 +88,9 @@ class Template(models.Model):
 
 
 class Rules(models.Model):
+    class Meta:
+        verbose_name = "조건정의"
+        verbose_name_plural = "조건정의"
     PAYMENT_OPTION = [('후불', '후불'), ('선불', '선불')]
     REPAYMENT_TYPE = [('균등분할상환', '균등분할상환'), ('만기일시상환', '만기일시상환')]
 
