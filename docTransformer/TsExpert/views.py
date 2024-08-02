@@ -13,9 +13,10 @@ from .services.extract import KeyValueExtractor
 from .services.post_process import post_process
 from .services.convert_pdf import convert_doc_to_docx
 from .services.DocGenerator import DocxHTMLParser, DocxGenerator
-from .models import KeyValue, Loan, MetaData, Template
+from .models import KeyValue, Loan, MetaData, Template, Task
 from pdf2docx import Converter
 from django.http import HttpResponse
+from .tasks import save_data_task
 import os
 import tempfile
 import PyPDF2
@@ -280,7 +281,7 @@ def save_key_value(request):
             data = request.data
             print(data)
             Loan.objects.create(
-                og_file = data.get('og_file'),
+                og_file=data.get('og_file'),
                 developer=data.get('developer'),
                 constructor=data.get('constructor'),
                 trustee=data.get('trustee'),
@@ -297,9 +298,33 @@ def save_key_value(request):
                 lead_arranger=data.get('lead_arranger'),
                 company=data.get('company'),
             )
-            return JsonResponse({'status': 'success'})
-            return JsonResponse({'status': 'success'})
+
+            return JsonResponse({'status': 'success', 'res': data})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
 
+# @csrf_exempt
+# @api_view(['POST'])
+# @parser_classes([MultiPartParser])
+# def save_key_value(request):
+#     if request.method == 'POST':
+#         try:
+#             data = request.data
+#             print(data)
+#             task = save_data_task.delay(data)
+#             Task.objects.create(task_id=task.id, status=task.state)
+#             return JsonResponse({'status': 'success', 'task_id': task.id})
+#         except Exception as e:
+#             return JsonResponse({'status': 'error', 'message': str(e)})
+#     return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+@csrf_exempt
+@api_view(['GET'])
+@parser_classes([MultiPartParser])
+def get_task_status(request, task_id):
+    try:
+        task = Task.objects.get(task_id=task_id)
+        return JsonResponse({'task_id': task_id, 'status': task.status, 'result': task.result})
+    except Task.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Task not found'})

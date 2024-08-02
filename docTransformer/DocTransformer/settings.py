@@ -30,7 +30,7 @@ environ.Env.read_env(env_file=BASE_DIR / '.env')
 HOST = env('HOST')
 PORT = env('PORT')
 METATYPE = env.int('METATYPE',2)
-print('HOST', HOST, 'PORT', PORT, 'MetaType', METATYPE)
+#print('HOST', HOST, 'PORT', PORT, 'MetaType', METATYPE)
 SECRET_KEY = env('SECRET_KEY')
 DEBUG = env('DEBUG')
 ALLOWED_HOSTS = ['*']
@@ -130,6 +130,15 @@ DATABASES = {
     }
 }
 
+
+#### Celery Settings ########################################
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators

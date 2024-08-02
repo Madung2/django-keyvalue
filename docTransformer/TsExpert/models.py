@@ -108,10 +108,12 @@ class Rules(models.Model):
 
 
 
-
-
-
-
+class Task(models.Model):
+    task_id = models.CharField(max_length=255, unique=True)
+    status = models.CharField(max_length=50)
+    result = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 
 

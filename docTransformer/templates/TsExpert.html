@@ -72,6 +72,22 @@
       z-index: 999;
       display: none;
     }
+    .message {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    display: none;
+    }
+
+    .message.success {
+        color: green;
+        background-color: #e0ffe0;
+    }
+
+    .message.error {
+        color: red;
+        background-color: #ffe0e0;
+    }
   </style>
 </head>
 <body>
@@ -147,6 +163,7 @@
           </div>
         </form>
       </div>
+      <div id="message" class="message"></div> <!-- Container for the message -->
 
   </div>
 
@@ -243,36 +260,39 @@
         const fileInputValue = document.getElementById('fileInput').value;
         data['og_file'] = fileInputValue; // 데이터를 'og_file' 키로 추가
         saveKeyValue(data);
+
     };
 
-    const saveKeyValue = (input_data) => {
-        console.log('input_data', input_data)
-        const formData = new FormData();
-        for (const key in input_data) {
-            if (input_data.hasOwnProperty(key)) {
-                formData.append(key, input_data[key]);
-            }
+    const saveKeyValue = async (input_data) => {
+    console.log('input_data', input_data);
+    const formData = new FormData();
+    for (const key in input_data) {
+        if (input_data.hasOwnProperty(key)) {
+            formData.append(key, input_data[key]);
         }
-        fetch('/ts_expert/save_key_value/', {
+    }
+    try {
+        const response = await fetch('/ts_expert/save_key_value/', {
             method: 'POST',
             headers: {
                 //'Content-Type': 'application/json',
                 'X-CSRFToken': csrftoken
             },
             body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                console.log('Data saved successfully:', data);
-            } else {
-                console.error('Error saving data:', data);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
         });
-    };
+        const data = await response.json();
+        if (data.status === 'success') {
+            console.log('Data saved successfully:', data);
+            return data;
+        } else {
+            console.error('Error saving data:', data);
+            return data;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        return {"status": "error", "message": "failed sending API"};
+    }
+};
     document.addEventListener('DOMContentLoaded', () => {
       let uploadedFile = null; // 업로드된 파일을 저장할 변수
 
@@ -325,7 +345,19 @@
             });
             console.log('jsonResult', jsonResult)
             
-            saveKeyValue(jsonResult)
+            const res = await saveKeyValue(jsonResult)
+            const messageContainer = document.getElementById('message');
+            messageContainer.style.display = 'block';
+            console.log(res)
+            if (res.status === 'success') {
+              console.log ('res1', res)
+              messageContainer.textContent = `${res.res.og_file}저장 성공`;
+              messageContainer.className = 'message success';
+            } else {
+              console.log('res2', res)
+              messageContainer.textContent = `저장 실패: ${res}`;
+              messageContainer.className = 'message error';
+            }
             
         }
     });
