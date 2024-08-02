@@ -555,6 +555,8 @@ class DocxGenerator:
                 address = '' 
                 company_name = '' 
                 replacement_text, highlight = self.get_replacement_text(target, name, address, company_name)
+                if not replacement_text:
+                    pass
                 print('rep', replacement_text)
                 if replacement_text.strip() == "" and para.text.replace('{{'+target+'}}', '').strip() == "":
                     para.text = "[[remove]]"

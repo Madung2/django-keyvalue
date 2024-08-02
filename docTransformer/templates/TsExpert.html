@@ -346,11 +346,11 @@
             console.log('jsonResult', jsonResult)
             
             const res = await saveKeyValue(jsonResult)
-            const messageContainer = document.getElementById('message');
-            messageContainer.style.display = 'block';
             console.log(res)
             if (res.status === 'success') {
               console.log ('res1', res)
+            const messageContainer = document.getElementById('message');
+            messageContainer.style.display = 'block';
               messageContainer.textContent = `${res.res.og_file}저장 성공`;
               messageContainer.className = 'message success';
             } else {
