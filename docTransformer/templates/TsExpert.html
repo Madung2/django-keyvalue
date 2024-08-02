@@ -364,7 +364,7 @@
       const fetchKeyValue = async (formData) => {
         try {
           console.log(`http://${HOST}:${PORT}/ts_expert/extract_key_value/`)
-          const response = await fetch(`http://${HOST}:${PORT}/ts_expert/extract_key_value/`, {
+          const response = await fetch(`/ts_expert/extract_key_value/`, {
             method: "POST",
             headers: {
               'X-CSRFToken': csrftoken
@@ -386,7 +386,7 @@
 
       const fetchExel = async (formData) => {
         try {
-          const response = await fetch(`http://${HOST}:${PORT}/ts_expert/extract_xl/`, {
+          const response = await fetch(`/ts_expert/extract_xl/`, {
             method: "POST",
             headers: {
               'X-CSRFToken': csrftoken
