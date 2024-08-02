@@ -31,9 +31,19 @@ class RulesAdmin(admin.ModelAdmin):
     class Meta:
         verbose_name = "조건정의"
         verbose_name_plural = "조건정의"
+
+class TemplateAdmin(admin.ModelAdmin):
+    list_display = ('id', 'title', 'contract_type', 'download_link', 'created_at', 'edited_at')
+    readonly_fields = ('download_link',)
+
+    def download_link(self, obj):
+        if obj.content:
+            return format_html('<a href="{}" download>{}</a>', obj.content.url, obj.content.name)
+        return "-"
+    download_link.short_description = '파일 다운로드'
 #admin.site.register(KeyValue, KeyValueAdmin)
 admin.site.register(Loan, LoanAdmin)
 admin.site.register(MetaData, MetaDataAdmin)
-admin.site.register(Template)
+admin.site.register(Template,TemplateAdmin)
 # admin.site.register(Rules)
 admin.site.register(Rules, RulesAdmin)

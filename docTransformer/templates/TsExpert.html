@@ -38,7 +38,7 @@
     .popup {
       display: none;
       position: fixed;
-      z-index: 1000;
+      z-index: 100;
       left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
@@ -87,6 +87,19 @@
     .message.error {
         color: red;
         background-color: #ffe0e0;
+    }
+    #message-box {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      background-color: #87CEEB;
+      /* color: white; */
+      padding: 10px;
+      border-radius: 5px;
+      opacity: 0;
+      visibility: visible; /* Ensure the element is visible */
+      transition: opacity 2s ease-in-out;
+      z-index: 100000; /* Ensure the message box is above other elements */
     }
   </style>
 </head>
@@ -602,7 +615,32 @@
     }
     const runGenerator = () =>{
       fetchGenerator()
+      showMessage(`파일명을 사용해 DocGen이 성공적으로 생성되었습니다`)
     }
+    const showMessage = (message) => {
+      console.log(message)
+      const messageBox = document.createElement('div');
+      messageBox.id = 'message-box';
+      messageBox.innerText = message;
+      document.body.appendChild(messageBox);
+      console.log('messageBox created and added to body:', messageBox);
+
+      // Show the message
+      setTimeout(() => {
+        messageBox.style.opacity = 1;
+        console.log('Message box shown');
+      }, 100);
+
+      // Hide the message after 3 seconds
+      setTimeout(() => {
+        messageBox.style.opacity = 0;
+        console.log('Message box hidden');
+        setTimeout(() => {
+          document.body.removeChild(messageBox);
+          console.log('Message box removed');
+        }, 6000); // Wait for the transition to complete before removing
+      }, 3000);
+    };
     const fetchGenerator = () => {
     console.log('runGen start');
 
