@@ -1,7 +1,7 @@
 from html.parser import HTMLParser
 from docx import Document
 from docx.shared import Pt, Inches
-from docx.enum.text import WD_ALIGN_PARAGRAPH,WD_COLOR_INDEX
+from docx.enum.text import WD_ALIGN_PARAGRAPH,WD_COLOR_INDEX, WD_COLOR
 from docx.shared import RGBColor
 from TsExpert.models import Template, Rules
 from TsExpert.serializers import RulesSerializer
