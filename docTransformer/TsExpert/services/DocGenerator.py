@@ -275,15 +275,15 @@ class DocxGenerator:
                     highlight_value = rule['highlight'] if 'highlight' in rule else False                
                     return self.edit_res_text(rule['final_text']), highlight_value
 
-            return '', False
+            return '', True
         else:
             eng_target = keyMapping[target]
             print(self.data)
             print('eng:', eng_target)
             if eng_target in self.data:
-                return self.data[eng_target], False
+                return self.data[eng_target], True
             else:
-                return '', False
+                return '', True
 
 
     #     if target in ['fund_name']:
