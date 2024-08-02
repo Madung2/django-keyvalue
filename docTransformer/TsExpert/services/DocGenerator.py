@@ -275,15 +275,15 @@ class DocxGenerator:
                     highlight_value = rule['highlight'] if 'highlight' in rule else False                
                     return self.edit_res_text(rule['final_text']), highlight_value
 
-            return '', True
+            return '', False
         else:
             eng_target = keyMapping[target]
             print(self.data)
             print('eng:', eng_target)
             if eng_target in self.data:
-                return self.data[eng_target], True
+                return self.data[eng_target], False
             else:
-                return '', True
+                return '', False
 
 
     #     if target in ['fund_name']:
@@ -576,7 +576,7 @@ class DocxGenerator:
                 
                 # 3) replace it
 
-                text_with_tags = para.text.replace("{{"+target+"}}", replacement_text)
+                text_with_tags = para.text.replace("{{"+target+"}}", f"<hl>{replacement_text}</hl>")
 
                 para.clear()
                 
