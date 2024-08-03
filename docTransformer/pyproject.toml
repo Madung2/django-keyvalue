@@ -24,6 +24,7 @@ pdf2docx = "^0.5.8"
 pypdf2 = "^3.0.1"
 celery = "^5.4.0"
 redis = "^5.0.8"
+pypandoc = "^1.13"
 
 
 [build-system]

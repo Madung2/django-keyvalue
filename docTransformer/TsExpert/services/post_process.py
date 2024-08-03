@@ -45,24 +45,24 @@ def combine_money_number_tags(tagged_values):
 def process_string(value, target_keyword):
     return value[0]
 
+def process_map(value, target_keyword):
+    map = target_keyword.get('map', '')
+    print('vvvv', value, map)
+    for v in value:
+        for m_k, m_v in map.items():
+            if m_k in v:
+                return m_v
+    return ''
+
 # def process_map(value, target_keyword):
 #     print('vvvv', value, target_keyword)
 #     map = target_keyword.get('map', '')
 #     for v in value:
 #         for m_k, m_v in map.items():
-#             if m_k in v:
+#             similarity = fuzz.ratio(m_k, v)
+#             if similarity >= 90:
 #                 return m_v
 #     return ''
-
-def process_map(value, target_keyword):
-    print('vvvv', value, target_keyword)
-    map = target_keyword.get('map', '')
-    for v in value:
-        for m_k, m_v in map.items():
-            similarity = fuzz.ratio(m_k, v)
-            if similarity >= 90:
-                return m_v
-    return ''
 
 def process_name(value, target_keyword):
     #############Try to Find NNP by MeCab first#########################

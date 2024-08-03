@@ -4,6 +4,8 @@ from docx import Document
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
 from rest_framework.decorators import api_view
 from rest_framework.decorators import parser_classes
 from rest_framework.parsers import MultiPartParser
@@ -11,7 +13,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from .services.extract import KeyValueExtractor
 from .services.post_process import post_process
-from .services.convert_pdf import convert_doc_to_docx
+#from .services.convert_pdf import convert_doc_to_docx, convert_hwp_to_docx
+from .services.convert_pdf import convert_to_docx
 from .services.DocGenerator import DocxHTMLParser, DocxGenerator
 from .models import KeyValue, Loan, MetaData, Template, Task
 from pdf2docx import Converter
@@ -55,6 +58,11 @@ def is_pdf_file(input_file):
 def is_doc_file(input_file):
     print('input_file_name:', input_file.name)
     return input_file.name.split('.')[-1]=='doc'
+
+def is_hwp_file(input_file):
+    print('input_file_name:', input_file.name)
+    return input_file.name.split('.')[-1]=='hwp'
+
 
 def extract_first_5_pages(input_pdf_path, output_pdf_path):
     # PDF 파일 읽기
@@ -159,12 +167,14 @@ def extract_key_value(request):
         return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
     
     file = request.FILES['file']
+    file_url = None
     print('thisis file', file, type(file))
     print(file.name, type(file.name))
+
     if is_doc_file(file):
         print('this is doc file ')
         print('have to run convert_doc_to_docx')
-        file = convert_doc_to_docx(file)
+        file, file_location = convert_to_docx(file, 'doc')
         content = file.read()
         result = run_data_extract(io.BytesIO(content))
     elif is_pdf_file(file):
@@ -194,37 +204,50 @@ def extract_key_value(request):
         with open(docx_file_path, 'rb') as f:
             docx_content = f.read()
         result = run_data_extract(io.BytesIO(docx_content))
+
+    elif is_hwp_file(file):
+        print('This is an HWP file.')
+        file, file_location = convert_to_docx(file, 'hwp')
+        content = file.read()
+        result = run_data_extract(io.BytesIO(content))
     else:
         # DOCX 파일을 바로 처리
         content = file.read()
         result = run_data_extract(io.BytesIO(content))
 
-    
+    # 변환된 파일 저장 및 URL 생성
+    if file_location:
+        saved_file_name = default_storage.save(os.path.join('documents/converted', os.path.basename(file_location)), ContentFile(file.read()))
+        file_url = request.build_absolute_uri(os.path.join(settings.MEDIA_URL, saved_file_name))
+        print(f"Generated file URL: {file_url}")
+    # 위치 처리
     print(result[0])
     if 'step3' in file.name:
-        for i, [title, ele1,ele2, ele3] in enumerate(result):
-            if title =='수수료':
+        for i, [title, ele1, ele2, ele3] in enumerate(result):
+            if title == '수수료':
                 result[i] = ['수수료', '0.5', '0.5', ele3]
                 break
-        for i, [title, ele1,ele2, ele3] in enumerate(result):
-            if title =='원금상환유형':
+        for i, [title, ele1, ele2, ele3] in enumerate(result):
+            if title == '원금상환유형':
                 result[i] = ['원금상환유형', '만기일시상환', '만기일시상환', ele3]
                 break
-        for i, [title, ele1,ele2, ele3] in enumerate(result):
-            if title =='대출금액':
+        for i, [title, ele1, ele2, ele3] in enumerate(result):
+            if title == '대출금액':
                 result[i] = ['대출금액', '200억', '200억', ele3]
                 break
-       
 
     if 'step4' in file.name:
-        result[0] =['회사','신한캐피탈 주식회사', '신한캐피탈 주식회사',1]
-        for i, [title, ele1,ele2, ele3] in enumerate(result):
-            if title =='이자상환기한':
+        result[0] = ['회사', '신한캐피탈 주식회사', '신한캐피탈 주식회사', 1]
+        for i, [title, ele1, ele2, ele3] in enumerate(result):
+            if title == '이자상환기한':
                 result[i] = ['이자상환기한', '10', '10', ele3]
                 break
 
-    return JsonResponse(result, safe=False)
-
+    response_data = {
+        "data": result,
+        "file_url": file_url
+    }
+    return JsonResponse(response_data, safe=False)
 
 
 @csrf_exempt
@@ -253,7 +276,11 @@ def run_generator(request):
         response['Content-Disposition'] = 'attachment; filename="res.docx"'
         return response
 
-    
+
+
+
+
+
 
 @csrf_exempt
 @api_view(['POST'])

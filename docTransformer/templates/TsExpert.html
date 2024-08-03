@@ -18,6 +18,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.6.0/jszip.min.js"></script>
   <!-- docx-preview 라이브러리를 포함합니다. -->
   <script src="https://unpkg.com/docx-preview@0.3.0/dist/docx-preview.min.js"></script>
+  <script src="https://mozilla.github.io/pdf.js/build/pdf.js"></script>
+  <script src="https://mozilla.github.io/pdf.js/web/viewer.js"></script>
   <!----favicon--->
 
   <style>
@@ -311,30 +313,33 @@
 
       const handlePreviewFile = async (file, fileName) => {
         const container = document.getElementById('fileViewer');
-        try {
-          const arrayBuffer = await file.arrayBuffer();
-          await docx.renderAsync(arrayBuffer, container, null, {
-            className: "docx",
-            inWrapper: true,
-            ignoreWidth: false,
-            ignoreHeight: false,
-            ignoreFonts: false,
-            breakPages: true,
-            ignoreLastRenderedPageBreak: true,
-            experimental: false,
-            trimXmlDeclaration: true,
-            useBase64URL: false,
-            renderChanges: false,
-            renderHeaders: true,
-            renderFooters: true,
-            renderFootnotes: true,
-            renderEndnotes: true,
-            renderComments: true,
-            debug: false,
-          });
-          console.log("docx: finished");
-        } catch (error) {
-          console.error('Error while rendering docx preview', error);
+
+        // 컨테이너의 기존 내용을 제거합니다.
+        container.innerHTML = '';
+
+        if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+          try {
+            const arrayBuffer = await file.arrayBuffer();
+            await docx.renderAsync(arrayBuffer, container, null, {
+              className: "docx",
+              renderComments: true,
+              comments: true,
+            });
+            console.log("docx: finished");
+          } catch (error) {
+            console.error('Error while rendering docx preview', error);
+          }
+        } else if (file.type === 'application/pdf') {
+          const fileURL = URL.createObjectURL(file);
+          const iframe = document.createElement('iframe');
+          iframe.src = fileURL;
+          iframe.width = '100%';
+          iframe.height = '100%'; // 필요에 따라 높이를 조정하세요
+          iframe.style.height = 'calc(100vh - 20px)';
+          container.appendChild(iframe);
+          console.log("pdf: displayed");
+        } else {
+          console.log('Unsupported file type');
         }
       };
 
@@ -347,10 +352,11 @@
             
             const formData = new FormData();
             formData.append('file', files[i]);
-            const data = await fetchKeyValue(formData);
-            console.log('result',i,':', data)
+            const result = await fetchKeyValue(formData);
+            console.log('result',i,':', result.data)
+            console.log('result_fileloc')
             const jsonResult = {};
-            data.forEach(subArray => {
+            result.data.forEach(subArray => {
                 const [key, value] = subArray;  // 배열의 첫 번째 요소는 키, 두 번째 요소는 값
                 const englishKey = keyMapping[key];
                 jsonResult[englishKey] = value;
@@ -376,7 +382,7 @@
     });
       const fetchKeyValue = async (formData) => {
         try {
-          console.log(`http://${HOST}:${PORT}/ts_expert/extract_key_value/`)
+          console.log(`/ts_expert/extract_key_value/`)
           const response = await fetch(`/ts_expert/extract_key_value/`, {
             method: "POST",
             headers: {
@@ -524,7 +530,7 @@
             });
 
             const normalizedCombinedText = normalizeString(combinedText);
-            console.log('nor', normalizedCombinedText, 'com', combinedText)
+            
 
             const regex = new RegExp(`(${normalizedSearchText})`, 'gi');
 
@@ -579,8 +585,19 @@
 
           try {
             await handlePreviewFile(file, fileName);
-            const data = await fetchKeyValue(formData);
-            populateTable(data);
+            const response = await fetchKeyValue(formData);
+            populateTable(response.data);
+
+            console.log('file_location<-need to view this file', response.file_url)
+            if (response.file_url) {
+              const convertedFileResponse = await fetch(response.file_url);
+              if (!convertedFileResponse.ok) {
+                  throw new Error('Failed to fetch converted file');
+              }
+              const convertedFileBlob = await convertedFileResponse.blob();
+              const convertedFile = new File([convertedFileBlob], fileName.replace(/\.[^/.]+$/, ".docx"));
+              await handlePreviewFile(convertedFile, convertedFile.name);
+          }
           } catch (error) {
             document.getElementById("message").innerText = "Error uploading file.";
           }
