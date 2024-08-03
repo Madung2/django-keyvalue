@@ -130,6 +130,7 @@ def get_loan_data():
     if not loan:
         return {}
     data = {
+        'og_file': loan.og_file,
         'developer': loan.developer,
         'constructor': loan.constructor,
         'trustee': loan.trustee,
@@ -223,6 +224,17 @@ def extract_key_value(request):
                 break
 
     return JsonResponse(result, safe=False)
+
+
+
+@csrf_exempt
+@api_view(['POST'])
+@parser_classes([MultiPartParser])
+def run_generator_data(request):
+    print('########################')
+    res_data = get_loan_data()
+    return JsonResponse(res_data, safe=False)
+
 
 
 @csrf_exempt
@@ -328,3 +340,6 @@ def get_task_status(request, task_id):
         return JsonResponse({'task_id': task_id, 'status': task.status, 'result': task.result})
     except Task.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Task not found'})
+
+
+#############################################for og TSExpert
