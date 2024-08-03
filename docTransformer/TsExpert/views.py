@@ -174,7 +174,7 @@ def extract_key_value(request):
     if is_doc_file(file):
         print('this is doc file ')
         print('have to run convert_doc_to_docx')
-        file, file_location = convert_to_docx(file, 'doc')
+        file, file_url = convert_to_docx(file, 'doc')
         content = file.read()
         result = run_data_extract(io.BytesIO(content))
     elif is_pdf_file(file):
@@ -207,7 +207,7 @@ def extract_key_value(request):
 
     elif is_hwp_file(file):
         print('This is an HWP file.')
-        file, file_location = convert_to_docx(file, 'hwp')
+        file, file_url = convert_to_docx(file, 'hwp')
         content = file.read()
         result = run_data_extract(io.BytesIO(content))
     else:
@@ -216,10 +216,10 @@ def extract_key_value(request):
         result = run_data_extract(io.BytesIO(content))
 
     # 변환된 파일 저장 및 URL 생성
-    if file_location:
-        saved_file_name = default_storage.save(os.path.join('documents/converted', os.path.basename(file_location)), ContentFile(file.read()))
-        file_url = request.build_absolute_uri(os.path.join(settings.MEDIA_URL, saved_file_name))
-        print(f"Generated file URL: {file_url}")
+    # if file_url:
+    #     saved_file_name = default_storage.save(os.path.join('documents/converted', os.path.basename(file_location)), ContentFile(file.read()))
+    #     file_url = request.build_absolute_uri(os.path.join(settings.MEDIA_URL, saved_file_name))
+    #     print(f"Generated file URL: {file_url}")
     # 위치 처리
     print(result[0])
     if 'step3' in file.name:

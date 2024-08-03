@@ -316,9 +316,13 @@
 
         // 컨테이너의 기존 내용을 제거합니다.
         container.innerHTML = '';
+        console.log('this is file', file)
+        console.log('thisis filetype', file.type)
+        console.log('fileName', fileName)
 
-        if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || file.name.endsWith('.docx')) {
           try {
+            console.log('this is docx')
             const arrayBuffer = await file.arrayBuffer();
             await docx.renderAsync(arrayBuffer, container, null, {
               className: "docx",
