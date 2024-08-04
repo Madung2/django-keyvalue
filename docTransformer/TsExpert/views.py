@@ -11,7 +11,7 @@ from rest_framework.decorators import parser_classes
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework import status
-from .services.extract import KeyValueExtractor
+from .services.extract import KeyValueExtractor, NestedTableExtractor
 from .services.post_process import post_process
 #from .services.convert_pdf import convert_doc_to_docx, convert_hwp_to_docx
 from .services.convert_pdf import convert_to_docx
@@ -79,7 +79,7 @@ def extract_first_5_pages(input_pdf_path, output_pdf_path):
         # 새로운 PDF 파일로 저장
         with open(output_pdf_path, 'wb') as output_pdf_file:
             pdf_writer.write(output_pdf_file)
-        print(f"Extracted first {num_pages} pages to {output_pdf_path}")
+        # print(f"Extracted first {num_pages} pages to {output_pdf_path}")
 
 ##################################################
 
@@ -88,7 +88,7 @@ def extract_first_5_pages(input_pdf_path, output_pdf_path):
 def get_key_value_data():
     print('2:get_key_value_data')
     latest_key_value = KeyValue.objects.order_by('-created_at').first()
-    print('lated_key_value:', latest_key_value.key_values)
+    # print('lated_key_value:', latest_key_value.key_values)
     return latest_key_value.key_values
 
 def get_meta_data():
@@ -101,6 +101,7 @@ def get_meta_data():
             "key": obj.key,
             "type": obj.type,
             "is_table": obj.is_table,
+            "extract_all_json": obj.extract_all_json,
             "synonym": {
                 "priority": json.loads(obj.synonym_all),
                 "all": json.loads(obj.synonym_all),
@@ -110,7 +111,7 @@ def get_meta_data():
             "sp_word": obj.sp_word,
             "value": json.loads(obj.value),
             "split": json.loads(obj.split),
-            "map": json.loads(obj.map)
+            "map": json.loads(obj.map),
         }
         data.append(item)
     print('latest metadata:', data)
@@ -122,13 +123,32 @@ def run_data_extract(file):
         key_value = get_meta_data()
     else:
         key_value = get_key_value_data()
-    print(dir(file))
+    # print(dir(file))
     doc = Document(file)
     ext = KeyValueExtractor(doc, key_value)
     data = ext.extract_data()
-    print('first_data:', data)
+
+    nest = NestedTableExtractor(doc, key_value)
+    nest_data = nest.extract_all_data()
+
+    print('####################################3')
+    # print('first_data:', data)
     data = ext.remove_duplication(data)
     final_data = post_process(data, key_value)
+    print('#######################################3')
+    print('nest_data', nest_data)
+    #### type1)
+    # for k, v in nest_data.items():
+    #     v_as_str = json.dumps(v, ensure_ascii=False)  # v를 JSON 문자열로 변환
+    #     new_d = [k, v_as_str, k , 0]
+    #     final_data.append(new_d)
+    #### type2)
+    for k, v in nest_data.items():
+        #v_as_str = json.dumps(v, ensure_ascii=False)  # v를 SON 문자열로 변환
+        for k2, v2 in v.items():
+            new_d = [f"{k} {k2}", v2, k, 0]
+            final_data.append(new_d)
+    print('final_Dtaa:', final_data)
     return final_data
 
 
@@ -155,7 +175,7 @@ def get_loan_data():
         'lead_arranger': loan.lead_arranger,
         'company': loan.company,
     }
-    print('data=', data)
+    # print('data=', data)
     return data
 
 
@@ -168,17 +188,17 @@ def extract_key_value(request):
     
     file = request.FILES['file']
     file_url = None
-    print('thisis file', file, type(file))
-    print(file.name, type(file.name))
+    # print('thisis file', file, type(file))
+    # print(file.name, type(file.name))
 
     if is_doc_file(file):
-        print('this is doc file ')
-        print('have to run convert_doc_to_docx')
+        # print('this is doc file ')
+        # print('have to run convert_doc_to_docx')
         file, file_url = convert_to_docx(file, 'doc')
         content = file.read()
         result = run_data_extract(io.BytesIO(content))
     elif is_pdf_file(file):
-        print('this is a PDF file')
+        # print('this is a PDF file')
         # PDF 파일을 읽고 변환
         pdf_content = file.read()
         pdf_file = io.BytesIO(pdf_content)
@@ -206,7 +226,7 @@ def extract_key_value(request):
         result = run_data_extract(io.BytesIO(docx_content))
 
     elif is_hwp_file(file):
-        print('This is an HWP file.')
+        # print('This is an HWP file.')
         file, file_url = convert_to_docx(file, 'hwp')
         content = file.read()
         result = run_data_extract(io.BytesIO(content))
@@ -221,7 +241,7 @@ def extract_key_value(request):
     #     file_url = request.build_absolute_uri(os.path.join(settings.MEDIA_URL, saved_file_name))
     #     print(f"Generated file URL: {file_url}")
     # 위치 처리
-    print(result[0])
+    # print(result[0])
     if 'step3' in file.name:
         for i, [title, ele1, ele2, ele3] in enumerate(result):
             if title == '수수료':
@@ -254,7 +274,7 @@ def extract_key_value(request):
 @api_view(['POST'])
 @parser_classes([MultiPartParser])
 def run_generator_data(request):
-    print('########################')
+    # print('########################')
     res_data = get_loan_data()
     return JsonResponse(res_data, safe=False)
 
@@ -264,9 +284,9 @@ def run_generator_data(request):
 @api_view(['POST'])
 @parser_classes([MultiPartParser])
 def run_generator(request):
-    print('########################')
+    # print('########################')
     res_data = get_loan_data()
-    print('data', res_data)
+    # print('data', res_data)
     gen = DocxGenerator(res_data, 3)
     buf, doc = gen.create_document()
     if buf is None:
@@ -318,7 +338,7 @@ def save_key_value(request):
     if request.method == 'POST':
         try:
             data = request.data
-            print(data)
+            # print(data)
             Loan.objects.create(
                 og_file=data.get('og_file'),
                 developer=data.get('developer'),
