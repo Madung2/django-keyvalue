@@ -28,6 +28,7 @@ class MetaData(models.Model):
     key = models.CharField(max_length=255, null=True, blank=True)
     type = models.CharField(max_length=50,  choices=TYPE_CHOICES, null=True, blank=True, default='string')
     is_table = models.BooleanField(default=True)
+    extract_all_json = models.BooleanField(default=False)
     #synonym_priority = models.CharField(max_length=255, null=T/rue, blank=True)
     synonym_all = models.CharField(max_length=600, null=True, blank=True, default="[]")
     synonym_pattern = models.CharField(max_length=255, null=True, blank=True, default="[]")
