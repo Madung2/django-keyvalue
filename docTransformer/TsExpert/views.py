@@ -181,7 +181,7 @@ def run_data_extract2(file):
     #### type1)
     for k, v in nest_data.items():
         v_as_str = json.dumps(v, ensure_ascii=False)  # v를 JSON 문자열로 변환
-        new_d = [k, v_as_str, k , 0]
+        new_d = [k, v, k , 0]
         final_data.append(new_d)
     #### type2)
     # for k, v in nest_data.items():
