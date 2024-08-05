@@ -3,6 +3,7 @@ from django.db import models
 from django.forms import Textarea
 from .models import KeyValue, Loan, MetaData,Template, Rules
 
+from django.utils.html import format_html 
 class KeyValueAdmin(admin.ModelAdmin):
     list_display = ('title', 'created_at', 'edited_at') 
     formfield_overrides = {
