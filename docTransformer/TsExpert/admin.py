@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.db import models
 from django.forms import Textarea
 from .models import KeyValue, Loan, MetaData,Template, Rules
-
+from django.utils.html import format_html  # Add this line
 class KeyValueAdmin(admin.ModelAdmin):
     list_display = ('title', 'created_at', 'edited_at') 
     formfield_overrides = {
