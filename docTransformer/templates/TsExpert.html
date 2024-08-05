@@ -71,7 +71,7 @@
       width: 100%;
       height: 100%;
       background-color: rgba(0, 0, 0, 0.5);
-      z-index: 999;
+      z-index: 99;
       display: none;
     }
     .message {
@@ -164,7 +164,6 @@
 
   <!-- 팝업 오버레이 -->
   <div class="overlay" id="overlay" onclick="closePopup()"></div>
-
   <!-- 팝업 내용 -->
   <div id="fileUploadPopup" class="popup">
     <span class="close" onclick="closePopup()">&times;</span>
@@ -179,8 +178,9 @@
         </form>
       </div>
       <div id="message" class="message"></div> <!-- Container for the message -->
-
-  </div>
+      
+    </div>
+    
 
   <script>
     const HOST = '{{ HOST }}';
