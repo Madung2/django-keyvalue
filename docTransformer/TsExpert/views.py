@@ -443,10 +443,10 @@ def get_task_status(request, task_id):
 @api_view(['POST'])
 @parser_classes([MultiPartParser])
 def extract_term_sheet(request):
-    if 'file' not in request.FILES:
+    if 'doc' not in request.FILES:
         return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
     
-    file = request.FILES['file']
+    file = request.FILES['doc']
     file_url = None
     # print('thisis file', file, type(file))
     # print(file.name, type(file.name))
