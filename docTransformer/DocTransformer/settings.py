@@ -72,7 +72,7 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:8501',
     'http://localhost:8501',
     'http://shinhandemo.edentns.com:8000',
-    'http://121.162.129.61:30080/'
+    'http://121.162.129.61:30080'
 ]
 CORS_ORIGIN_WHITELIST = [
     'http://121.162.129.61:30100',  # 프론트엔드 도메인
@@ -83,7 +83,7 @@ CORS_ORIGIN_WHITELIST = [
     'http://127.0.0.1:8501',
     'http://localhost:8501',
     'http://shinhandemo.edentns.com:8000',
-    'http://121.162.129.61:30080/'
+    'http://121.162.129.61:30080'
 ]
 CSRF_TRUSTED_ORIGINS = [
     'http://121.162.129.61:30100',  # 프론트엔드 도메인
@@ -94,7 +94,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8501',
     'http://localhost:8501',
     'http://shinhandemo.edentns.com:8000',
-    'http://121.162.129.61:30080/'
+    'http://121.162.129.61:30080'
 ]
 SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 SESSION_COOKIE_SECURE = False
