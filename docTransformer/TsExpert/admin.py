@@ -21,8 +21,15 @@ class LoanAdmin(admin.ModelAdmin):
         verbose_name = "Job 로그"
         verbose_name_plural = "Job 로그"
 
+def in_use_active(modeladmin, request, queryset):
+    for obj in queryset:
+        obj.in_use = not obj.in_use
+        obj.save()
+in_use_active.short_description = "사용 여부 변경"
+
 class MetaDataAdmin(admin.ModelAdmin):
     list_display = ('key', 'type', 'synonym_all', 'sp_word', 'in_use') 
+    actions = [in_use_active]
     class Meta:
         verbose_name = "사전"
         verbose_name_plural = "사전"
@@ -36,6 +43,7 @@ class RulesAdmin(admin.ModelAdmin):
 class TemplateAdmin(admin.ModelAdmin):
     list_display = ('id', 'title', 'contract_type', 'download_link', 'created_at', 'edited_at')
     readonly_fields = ('download_link',)
+    
 
     def download_link(self, obj):
         if obj.content:
