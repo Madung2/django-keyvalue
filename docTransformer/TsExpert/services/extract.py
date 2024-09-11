@@ -95,6 +95,7 @@ class NestedTableExtractor:
                     continue
                 cell_text, has_background = cell
                 if target_text in cell_text:
+                    print('TARGET:::::', (table_index, 'row', col_index, cell_text))
                     results.append((table_index, 'row', col_index, cell_text))
 
             # Check the first column
@@ -103,6 +104,7 @@ class NestedTableExtractor:
                     continue
                 cell_text, has_background = row[0]
                 if target_text in cell_text:
+                    print('TARGET:::::', (table_index, 'column', row_index, cell_text))
                     results.append((table_index, 'column', row_index, cell_text))
 
         return results
@@ -387,15 +389,17 @@ class KeyValueExtractor:
             if len(table.columns) >= 2:  # 테이블이 최소 2개의 열을 가지고 있는지 확인
                 for i_r, row in enumerate(table.rows):  
                     
+                    #1) 옵션 1 첫번째 셀에서 키를 추출, & 2번째 셀에서밸류의 값을 추출..
                     row_num = i_r
-                    value_cell = row.cells[1]  
+                    value_cell = row.cells[1]
                     key = remove_numbers_special_chars(row.cells[0].text.strip())  # 첫 번째 셀에서 키를 추출
                     value = row.cells[1].text.strip()  # 두 번째 셀에서 값을 추출.
-                    print(key,":",value)
+
+                    # 네스티드 테이블은 따로 추출
                     nested_table = self.find_nested_table(value_cell)  # 값 셀에서 중첩된 테이블을 찾음
 
-                    ##########################################################################3
-                    # 여기서 nested_table이 
+                    
+                    
                     #############################################################################
                     # 여기까지 key란:원본문서의 테이블 [0]번 셀에 있는 텍스트 value란:원본문서의 [1]번 셀에 있는 텍스트
                     k, reps = self.filter_function(key)  # 키를 필터링하고 대표 키를 확인
@@ -403,6 +407,18 @@ class KeyValueExtractor:
                     if k and (k not in self.data_keys):  # 키가 유효하고 이미 데이터 키 집합에 없는지 확인
                         self.process_representatives_and_values(k, value, reps, table_data, self.data_keys, self.rep_keys, nested_table, table_number, row_num)
                         # 대표 키와 값을 처리하고 데이터 리스트에 추가
+                    
+                    #2) 혹시 테이블의 0번째 셀이 아닌곳에 백그라운드 색이 적용되어 있고 그 오른쪽에도 셀이 있다면
+                    # 백그라운드색이 있는곳도 key로 추출하고 밸류는 그 오른쪽 셀로 적용 -> 이 경우에는 한줄에 여러개의 키밸류가 있을 수 있음
+                    for j, cell in enumerate(row.cells):
+                        if j > 0 and has_background_color(cell):  # 0번째 셀이 아닌 곳에서 백그라운드 색이 있을 경우
+                            key = remove_numbers_special_chars(cell.text.strip())  # 배경색이 있는 셀에서 키를 추출
+                            if j + 1 < len(row.cells):  # 오른쪽 셀 값 추출
+                                value = row.cells[j + 1].text.strip()
+                                k, reps = self.filter_function(key)
+                                if k and (k not in self.data_keys):
+                                    self.process_representatives_and_values(k, value, reps, table_data, self.data_keys, self.rep_keys, nested_table, table_number, row_num)
+
         # print('Table Data: ', table_data)
         for t in table_data:
             f = PosFinder(self.doc)
@@ -461,12 +477,13 @@ class KeyValueExtractor:
         
         :return: 추출된 모든 데이터의 리스트.
         """
+        ## ✯ MAIN FUNCTION ✯ 
         table_data = self.process_tables()  # 테이블 데이터 처리
         table_data = self.add_not_extracted_column(table_data)
+        print('tale_Data######################################################################')
+        print(table_data)
+        print('table_Data#########################################################################')
         vertical_data = self.treat_extract_all_json()
-
-
-
 
 
         self.process_none_table_keys()  # 테이블이 아닌 키-값 쌍 처리
