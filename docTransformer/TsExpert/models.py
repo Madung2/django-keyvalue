@@ -8,7 +8,7 @@ class KeyValue(models.Model):
     edited_at = models.DateTimeField("수정일자", auto_now=True)
 
 
-class MetaData(models.Model):
+class Dictionary(models.Model):
     class Meta:
         verbose_name = "사전"
         verbose_name_plural = "사전"
@@ -32,6 +32,7 @@ class MetaData(models.Model):
     #synonym_priority = models.CharField(max_length=255, null=T/rue, blank=True)
     synonym_all = models.CharField(max_length=600, null=True, blank=True, default="[]")
     synonym_pattern = models.CharField(max_length=255, null=True, blank=True, default="[]")
+    second_key = models.CharField(max_length=600, null=True, blank=True, default="[]")
     sp_word = models.CharField(max_length=255, null=True, blank=True)
     value = models.CharField(max_length=255,null=True, blank=True, default="[]")
     split = models.CharField(max_length=255,null=True, blank=True, default="[]")
