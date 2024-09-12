@@ -16,9 +16,7 @@ is_table:  True면 table에서 밸류를 찾고 False면 일반 텍스트 쪽에
 
 specific: specific=True면 오른쪽 항을 잘라서 tokenize한 다음에 그 중 'sp_word'의 값이 있는 항을 찾는다.
 
-sp_word: spcific =False 지만 sp_word의 값이 있으면 post_process를 할때 tagging 이 이뤄진 이후에 sp_word와 관련이 있는 값을 추출한다.
-
-value: 해당 값이 있으면 그것이 찾고자 하는 밸류임
+ue: 해당 값이 있으면 그것이 찾고자 하는 밸류임
 
 second_key = []
 예) 가로-키가: 제어반 이고 세로-키: 제조사명 일때 제어반 제조사명을 찾고 싶으면 
