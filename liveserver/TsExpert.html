@@ -84,8 +84,7 @@
   </div>
 
   <script>
-    const HOST = '127.0.0.1'
-    const PORT = '8502'
+
     //const PORT = '8081'
     const refreshPage = () => location.reload();
     document.addEventListener('DOMContentLoaded', () => {
@@ -122,8 +121,8 @@
 
       const fetchKeyValue = async (formData) => {
         try {
-          console.log(`http://${HOST}:${PORT}/ts_expert/extract_key_value/`)
-          const response = await fetch(`http://${HOST}:${PORT}/ts_expert/extract_key_value/`, {
+          
+          const response = await fetch(`/ts_expert/extract_key_value/`, {
             method: "POST",
             body: formData,
           });
@@ -140,7 +139,7 @@
 
       const fetchExel = async (formData) => {
         try {
-          const response = await fetch(`http://${HOST}:${PORT}/ts_expert/extract_xl/`, {
+          const response = await fetch(`/ts_expert/extract_xl/`, {
             method: "POST",
             body: formData,
           });

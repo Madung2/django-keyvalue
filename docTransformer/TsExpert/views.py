@@ -29,11 +29,7 @@ import json
 from django.shortcuts import render
 
 def render_tsexpert(req):
-    context = {
-        'HOST': settings.HOST,
-        'PORT': settings.PORT
-    }
-    return render(req, 'TsExpert.html', context)
+    return render(req, 'TsExpert.html')
 
 
 def render_docGenerator(req):

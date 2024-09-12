@@ -183,9 +183,7 @@
     
 
   <script>
-    const HOST = '{{ HOST }}';
-    //const HOST = 'doctransformer';
-    const PORT = '{{ PORT }}';
+
     const keyMapping = {
     '시행사': 'developer',
     '시공사': 'constructor',
@@ -231,10 +229,6 @@
         fileInput.dispatchEvent(event);
       }
     });
-
-
-
-    console.log('HOST:', HOST, 'PORT:', PORT)
 
     const getCookie = (name) => {
       let cookieValue = null;
