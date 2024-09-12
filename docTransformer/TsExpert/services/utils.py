@@ -125,3 +125,11 @@ def has_background_color(cell):
         if fill and fill != "auto":  # 'auto'가 아닌 값이 있으면 배경색이 설정된 것
             return True
     return False
+    
+def clean_text(text):
+    """
+    Removes unwanted characters like newlines (\n) and tabs (\t) from the text.
+    """
+    if text is None:
+        return None
+    return text.replace('\n', '').replace('\t', '').strip()

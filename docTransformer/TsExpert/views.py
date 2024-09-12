@@ -107,7 +107,7 @@ def get_meta_data():
                 "all": json.loads(obj.synonym_all),
                 "pattern": json.loads(obj.synonym_pattern)
             },
-            "second_key": json.loads(obj.second_key), 
+            "second_key": json.loads(obj.second_key),
             "specific": bool(obj.sp_word),
             "sp_word": obj.sp_word,
             "value": json.loads(obj.value),
@@ -140,7 +140,8 @@ def run_data_extract(file):
     print('nest_data', nest_data)
     final_data_keys = [f[0] for f in final_data]
     print('final_data_keyus', final_data_keys)
-    not_nested_key_value = [k_v for k_v in key_value if not k_v['extract_all_json']]
+    not_nested_key_value = [k_v for k_v in key_value if (not k_v['extract_all_json']) and (k_v['second_key']!=[])]
+    print('not_nexted_key_value', not_nested_key_value)
     for ele in not_nested_key_value:
         if ele['key'] not in final_data_keys:
             final_data_keys.append([ele['key'], '', '', 0])
@@ -173,12 +174,9 @@ def run_data_extract2(file):
     nest = NestedTableExtractor(doc, key_value)
     nest_data = nest.extract_all_data()
 
-    print('####################################3')
     # print('first_data:', data)
     data = ext.remove_duplication(data)
     final_data = post_process(data, key_value)
-    print('#######################################3')
-    print('nest_data', nest_data)
     #### type1)
     for k, v in nest_data.items():
         v_as_str = json.dumps(v, ensure_ascii=False)  # v를 JSON 문자열로 변환

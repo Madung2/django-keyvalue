@@ -26,6 +26,7 @@ class NestedTableExtractor:
     def cell_has_background(cell):
         """
         Checks if the given cell has a background color.
+        To make it work we need to use xml library and show namespace
         """
         cell_xml = cell._tc.get_or_add_tcPr()
         shd = cell_xml.find(qn('w:shd'))
@@ -501,7 +502,7 @@ class KeyValueExtractor:
                 # If no exact match, use fuzz.ratio to find approximate matches
                 index = -1
                 for i, cell_text in enumerate(first_row_cells):
-                    if fuzz.ratio(key, cell_text) >= 80:
+                    if fuzz.ratio(key, cell_text) >= 70:
                         index = i
                         break  # Stop at the first match
             
@@ -558,18 +559,17 @@ class KeyValueExtractor:
                         matching_row_cells = [cell.text.strip() for cell in row.cells[1:]]
                         
                         # Append the result as a tuple (first row cells, matching row cells)
-                        result.append((first_row_cells, matching_row_cells))
+                        
                         #first_row = ['제조사명\n(수입업자명)', '모델명', 'KC 인증번호']
                         #matching_row = ['㈜익스프레스리프트', 'EXPRESS-\nAS380(MRL)', 'AAB10-H005-19002']
 
-                        found_text= find_value_match_first_row(first_row_cells, matching_row_cells, second_keys)
-                        cleaned_found_text = clean_text(foudn_text)
-                        print(found_text)
+                        found_text= self.find_value_match_first_row(first_row_cells, matching_row_cells, second_keys)
+                        cleaned_found_text = clean_text(found_text)
                         # found_text should be value of the target keyword
-                        result.append([element[key], cleaned_found_text, found_text, ''])
+                        result.append([element['key'], cleaned_found_text, 0])
 
 
-        
+        print('')
         return result
 
     def treat_second_key(self):
@@ -585,9 +585,21 @@ class KeyValueExtractor:
         print(has_secondkey_dict_elements)
         print('%%%%%%%%%%%%%%%%%%')
 
-        return self.find_matching_rows(has_second_dict_elements)
+        return self.find_matching_rows(has_secondkey_dict_elements)
 
 
+    def update_table_data(self, table_data, second_key_data):
+        # 각 second_key_data의 0번째 요소를 기준으로 table_data와 비교
+        for sec_row in second_key_data:
+            sec_key = sec_row[0]
+            
+            # table_data에서 0번째 요소가 겹치는 항목을 찾고 교체
+            for idx, table_row in enumerate(table_data):
+                if table_row[0] == sec_key:
+                    table_data[idx] = sec_row  # 해당 row를 second_key_data의 row로 교체
+                    break
+        
+        return table_data
 
     def extract_data(self):
         """
@@ -598,13 +610,11 @@ class KeyValueExtractor:
         ## ✯ MAIN FUNCTION ✯ 
         table_data = self.process_tables()  # 테이블 데이터 처리
         table_data = self.add_not_extracted_column(table_data)
-        print('tale_Data######################################################################')
-        print(table_data)
-        print('table_Data#########################################################################')
-        vertical_data = self.treat_extract_all_json()
         second_key_data= self.treat_second_key()
-        table_data += second_key_data
+        # table_data += second_key_data
+        table_data = self.update_table_data(table_data, second_key_data)
 
+        vertical_data = self.treat_extract_all_json()
 
         self.process_none_table_keys()  # 테이블이 아닌 키-값 쌍 처리
         self.data += table_data  # 추출된 테이블 데이터를 데이터 리스트에 추가
@@ -616,17 +626,17 @@ class KeyValueExtractor:
             if a not in all_extracted_keys:
                 table_data.append([a, '', 0])
         return table_data
-
+    
     @staticmethod
     def remove_duplication(data):
 
         seen = set()  # 중복을 체크하기 위한 집합
         unique_data = []  # 중복이 제거된 요소를 저장할 리스트
         for ele in data:
-            if ele[0] not in seen:
-                seen.add(ele[0])  # 집합에 요소 추가
+            # ele[0]이 리스트인 경우 튜플로 변환해서 처리
+            key = tuple(ele[0]) if isinstance(ele[0], list) else ele[0]
+            if key not in seen:
+                seen.add(key)  # 집합에 요소 추가
                 unique_data.append(ele)  # 결과 리스트에도 요소 추가
         
         return unique_data
-    
-    
