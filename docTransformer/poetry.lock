@@ -2766,7 +2766,18 @@ files = [
     {file = "wrapt-1.16.0.tar.gz", hash = "sha256:5f370f952971e7d17c7d1ead40e49f32345a7f7a5373571ef44d800d06b1899d"},
 ]
 
+[[package]]
+name = "xlsxwriter"
+version = "3.2.0"
+description = "A Python module for creating Excel XLSX files."
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "XlsxWriter-3.2.0-py3-none-any.whl", hash = "sha256:ecfd5405b3e0e228219bcaf24c2ca0915e012ca9464a14048021d21a995d490e"},
+    {file = "XlsxWriter-3.2.0.tar.gz", hash = "sha256:9977d0c661a72866a61f9f7a809e25ebbb0fb7036baa3b9fe74afcfca6b3cb8c"},
+]
+
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "e1411bcb6f06637aa17cfa89840667d50d10b9be5caa513bc53dc44ec9bdd18f"
+content-hash = "38ed7b5e77a4f42d6b171ebc867064cd53d1230808911771f608dd2681f0588e"

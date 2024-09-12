@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.db import models
 from django.forms import Textarea
-from .models import KeyValue, Loan, MetaData,Template, Rules
+from .models import KeyValue, Loan, Dictionary,Template, Rules
 
 from django.utils.html import format_html 
 class KeyValueAdmin(admin.ModelAdmin):
@@ -27,7 +27,7 @@ def in_use_active(modeladmin, request, queryset):
         obj.save()
 in_use_active.short_description = "사용 여부 변경"
 
-class MetaDataAdmin(admin.ModelAdmin):
+class DictionaryAdmin(admin.ModelAdmin):
     list_display = ('key', 'type', 'synonym_all', 'sp_word', 'in_use') 
     actions = [in_use_active]
     class Meta:
@@ -52,7 +52,7 @@ class TemplateAdmin(admin.ModelAdmin):
     download_link.short_description = '파일 다운로드'
 #admin.site.register(KeyValue, KeyValueAdmin)
 admin.site.register(Loan, LoanAdmin)
-admin.site.register(MetaData, MetaDataAdmin)
+admin.site.register(Dictionary, DictionaryAdmin)
 admin.site.register(Template,TemplateAdmin)
 # admin.site.register(Rules)
 admin.site.register(Rules, RulesAdmin)

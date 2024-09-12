@@ -16,7 +16,7 @@ from .services.post_process import post_process
 #from .services.convert_pdf import convert_doc_to_docx, convert_hwp_to_docx
 from .services.convert_pdf import convert_to_docx
 from .services.DocGenerator import DocxHTMLParser, DocxGenerator
-from .models import KeyValue, Loan, MetaData, Template, Task
+from .models import KeyValue, Loan, Dictionary, Template, Task
 from pdf2docx import Converter
 from django.http import HttpResponse
 from .tasks import save_data_task
@@ -93,7 +93,7 @@ def get_key_value_data():
 
 def get_meta_data():
     print('2:get_meta_data')
-    meta_data_objects = MetaData.objects.filter(in_use=True)
+    meta_data_objects = Dictionary.objects.filter(in_use=True)
     data = []
     
     for obj in meta_data_objects:
@@ -107,6 +107,7 @@ def get_meta_data():
                 "all": json.loads(obj.synonym_all),
                 "pattern": json.loads(obj.synonym_pattern)
             },
+            "second_key": json.loads(obj.second_key), 
             "specific": bool(obj.sp_word),
             "sp_word": obj.sp_word,
             "value": json.loads(obj.value),
@@ -220,99 +221,153 @@ def get_loan_data():
     return data
 
 
+from django.http import JsonResponse
+from rest_framework.decorators import api_view, parser_classes
+from rest_framework.parsers import MultiPartParser
+from rest_framework.response import Response
+from rest_framework import status
+import io
+
+# Assuming these are custom utility functions for your use case.
+# These should be imported if they exist already.
+# from utils import is_doc_file, is_pdf_file, is_hwp_file, convert_to_docx, run_data_extract, convert_pdf_to_docx, extract_first_5_pages
+
+def process_file(file):
+    """Main handler for processing the file and extracting key-value pairs."""
+    file_url = None
+    result = []
+    
+    if is_doc_file(file):
+        file, file_url = convert_to_docx(file, 'doc')
+        result = extract_data_from_docx(file)
+        
+    elif is_pdf_file(file):
+        result = extract_data_from_pdf(file)
+        
+    elif is_hwp_file(file):
+        file, file_url = convert_to_docx(file, 'hwp')
+        result = extract_data_from_docx(file)
+        
+    else:
+        result = extract_data_from_docx(file)
+    
+    return result, file_url
+
+def extract_data_from_docx(docx_file):
+    """Extract key-value data from DOCX files."""
+    content = docx_file.read()
+    return run_data_extract(io.BytesIO(content))
+
+def extract_data_from_pdf(pdf_file):
+    """Extract key-value data from PDF files by converting them to DOCX."""
+    pdf_content = pdf_file.read()
+    pdf_file_io = io.BytesIO(pdf_content)
+    
+    # Extract first 5 pages from PDF and convert to DOCX
+    input_pdf_path = 'input.pdf'
+    output_pdf_path = 'output_first_5_pages.pdf'
+    
+    # Save PDF content temporarily
+    with open(input_pdf_path, 'wb') as f:
+        f.write(pdf_content)
+        
+    extract_first_5_pages(input_pdf_path, output_pdf_path)
+    
+    # Read the converted first 5 pages of PDF
+    with open(output_pdf_path, 'rb') as f:
+        pdf_5_pages_content = f.read()
+    pdf_5_pages_file = io.BytesIO(pdf_5_pages_content)
+    
+    docx_file_path = convert_pdf_to_docx(pdf_5_pages_file)
+    
+    # Read the converted DOCX and extract data
+    with open(docx_file_path, 'rb') as f:
+        docx_content = f.read()
+        
+    return run_data_extract(io.BytesIO(docx_content))
+
 @csrf_exempt
 @api_view(['POST'])
 @parser_classes([MultiPartParser])
 def extract_key_value(request):
+    """API endpoint for extracting key-value pairs from a file."""
     if 'file' not in request.FILES:
         return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
     
     file = request.FILES['file']
-    file_url = None
-    result = []
-    # print('thisis file', file, type(file))
-    # print(file.name, type(file.name))
-
-    if is_doc_file(file):
-        # print('this is doc file ')
-        # print('have to run convert_doc_to_docx')
-        file, file_url = convert_to_docx(file, 'doc')
-        content = file.read()
-        result = run_data_extract(io.BytesIO(content))
-    elif is_pdf_file(file):
-        # print('this is a PDF file')
-        # PDF 파일을 읽고 변환
-        pdf_content = file.read()
-        pdf_file = io.BytesIO(pdf_content)
-        
-        # 임시 파일 경로 설정
-        input_pdf_path = 'input.pdf'
-        output_pdf_path = 'output_first_5_pages.pdf'
-        
-        # 임시 파일에 PDF 내용 쓰기
-        with open(input_pdf_path, 'wb') as f:
-            f.write(pdf_content)
-        
-        # 첫 5페이지 추출
-        extract_first_5_pages(input_pdf_path, output_pdf_path)
-        
-        # 변환된 PDF 파일을 읽어 convert_pdf_to_docx에 전달
-        with open(output_pdf_path, 'rb') as f:
-            pdf_5_pages_content = f.read()
-        pdf_5_pages_file = io.BytesIO(pdf_5_pages_content)
-        docx_file_path = convert_pdf_to_docx(pdf_5_pages_file)
-        
-        # 변환된 DOCX 파일을 읽어 run_data_extract에 전달
-        with open(docx_file_path, 'rb') as f:
-            docx_content = f.read()
-        result = run_data_extract(io.BytesIO(docx_content))
-
-    elif is_hwp_file(file):
-        # print('This is an HWP file.')
-        file, file_url = convert_to_docx(file, 'hwp')
-        content = file.read()
-        result = run_data_extract(io.BytesIO(content))
-    else:
-        # DOCX 파일을 바로 처리
-        content = file.read()
-        result = run_data_extract(io.BytesIO(content))
-
-    print('result1', result)
-
-    # 변환된 파일 저장 및 URL 생성
-    # if file_url:
-    #     saved_file_name = default_storage.save(os.path.join('documents/converted', os.path.basename(file_location)), ContentFile(file.read()))
-    #     file_url = request.build_absolute_uri(os.path.join(settings.MEDIA_URL, saved_file_name))
-    #     print(f"Generated file URL: {file_url}")
-    # 위치 처리
-    # print(result[0])
-    # if 'step3' in file.name:
-    #     for i, [title, ele1, ele2, ele3] in enumerate(result):
-    #         if title == '수수료':
-    #             result[i] = ['수수료', '0.5', '0.5', ele3]
-    #             break
-    #     for i, [title, ele1, ele2, ele3] in enumerate(result):
-    #         if title == '원금상환유형':
-    #             result[i] = ['원금상환유형', '만기일시상환', '만기일시상환', ele3]
-    #             break
-    #     for i, [title, ele1, ele2, ele3] in enumerate(result):
-    #         if title == '대출금액':
-    #             result[i] = ['대출금액', '200억', '200억', ele3]
-    #             break
-
-    # if 'step4' in file.name:
-    #     result[0] = ['회사', '신한캐피탈 주식회사', '신한캐피탈 주식회사', 1]
-    #     for i, [title, ele1, ele2, ele3] in enumerate(result):
-    #         if title == '이자상환기한':
-    #             result[i] = ['이자상환기한', '10', '10', ele3]
-    #             break
+    result, file_url = process_file(file)
     
-    print('result2', result)
     response_data = {
         "data": result,
         "file_url": file_url
     }
     return JsonResponse(response_data, safe=False)
+
+
+# @csrf_exempt
+# @api_view(['POST'])
+# @parser_classes([MultiPartParser])
+# def extract_key_value(request):
+#     if 'file' not in request.FILES:
+#         return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
+    
+#     file = request.FILES['file']
+#     file_url = None
+#     result = []
+#     # print('thisis file', file, type(file))
+#     # print(file.name, type(file.name))
+
+#     if is_doc_file(file):
+#         # print('this is doc file ')
+#         # print('have to run convert_doc_to_docx')
+#         file, file_url = convert_to_docx(file, 'doc')
+#         content = file.read()
+#         result = run_data_extract(io.BytesIO(content))
+#     elif is_pdf_file(file):
+#         # print('this is a PDF file')
+#         # PDF 파일을 읽고 변환
+#         pdf_content = file.read()
+#         pdf_file = io.BytesIO(pdf_content)
+        
+#         # 임시 파일 경로 설정
+#         input_pdf_path = 'input.pdf'
+#         output_pdf_path = 'output_first_5_pages.pdf'
+        
+#         # 임시 파일에 PDF 내용 쓰기
+#         with open(input_pdf_path, 'wb') as f:
+#             f.write(pdf_content)
+        
+#         # 첫 5페이지 추출
+#         extract_first_5_pages(input_pdf_path, output_pdf_path)
+        
+#         # 변환된 PDF 파일을 읽어 convert_pdf_to_docx에 전달
+#         with open(output_pdf_path, 'rb') as f:
+#             pdf_5_pages_content = f.read()
+#         pdf_5_pages_file = io.BytesIO(pdf_5_pages_content)
+#         docx_file_path = convert_pdf_to_docx(pdf_5_pages_file)
+        
+#         # 변환된 DOCX 파일을 읽어 run_data_extract에 전달
+#         with open(docx_file_path, 'rb') as f:
+#             docx_content = f.read()
+#         result = run_data_extract(io.BytesIO(docx_content))
+
+#     elif is_hwp_file(file):
+#         # print('This is an HWP file.')
+#         file, file_url = convert_to_docx(file, 'hwp')
+#         content = file.read()
+#         result = run_data_extract(io.BytesIO(content))
+#     else:
+#         # DOCX 파일을 바로 처리
+#         content = file.read()
+#         result = run_data_extract(io.BytesIO(content))
+
+#     print('result1', result)
+#     print('result2', result)
+#     response_data = {
+#         "data": result,
+#         "file_url": file_url
+#     }
+#     return JsonResponse(response_data, safe=False)
 
 
 @csrf_exempt
@@ -355,14 +410,22 @@ def extract_xl(request):
         return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
     
     file = request.FILES['file']
-
-    content = file.read()
-    data = run_data_extract(io.BytesIO(content))
+    result, file_url = process_file(file)
     
-    # Transforming data into a DataFrame
-    columns = [row[0] for row in data]
-    values = [row[1] for row in data]
-    df = pd.DataFrame([values], columns=columns)
+    # response_data = {
+    #     "data": result,
+    #     "file_url": file_url
+    # }
+    print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&11')
+    print(result)
+    print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&22')
+    # # Transforming data into a DataFrame
+    # columns = [row[0] for row in result]
+    # values = [row[1] for row in result]
+    vertical_data = [[row[0], row[1]] for row in result]
+    # df = pd.DataFrame([values], columns=columns)
+    df = pd.DataFrame(vertical_data, columns=['키', '밸류'])
+
     
     # Save the DataFrame to an Excel file
     output = io.BytesIO()

@@ -293,7 +293,9 @@ class KeyValueExtractor:
         keyword_ele =find_keyword_ele_by_key(r, self.key_value)
 
         specific = keyword_ele['specific']
-        sp_word = keyword_ele['sp_word'] # spword can be lis
+        sp_word = keyword_ele['sp_word'] # spword can be list
+#        second_key = keyword_ele['second_key']
+
 
         if sp_word:
             if any(word in k for word in sp_word):
@@ -301,7 +303,7 @@ class KeyValueExtractor:
             else:
                 RUN_TYPE=2 # need to split text and find specific word
 
-        # run specific
+        # run specificFprocess_specific_value
         if specific:
             if RUN_TYPE ==1:
                 return v, keyword_ele
@@ -311,13 +313,11 @@ class KeyValueExtractor:
                     v = self.extract_nested_table_data(nested_table)
 
                 # else:
-                text_list = re.split('\s{3,}|,\s*|:\s*', v)
+                text_list = re.split(r'\s{3,}|,\s*|:\s*', v)                
                 for text in text_list:
                     if any(word in text for word in sp_word):
                         # print(f'specific_running: {text},,{keyword_ele}')
                         return text, keyword_ele
-        
-        
         return v, keyword_ele
 
     def process_representatives_and_values(self, k, value, reps, data, data_keys, rep_keys, nested_table, table_number, row_num):
@@ -463,12 +463,130 @@ class KeyValueExtractor:
 
         ### 2) find if it's vertical table
 
-        #### 3) find 'target text' from col[0] or row[0]
+        ### 3) find 'target text' from col[0] or row[0]
 
         ### 4) find table type by checking word '구분' : if it's in same column as target_text it's table type 2 and if it's in [0] column only it's table type 1
 
 
         pass
+
+    def find_value_match_first_row(self, first_row_cells, matching_row_cells, second_key_list):
+        """
+        이 함수는 first_row_cells에서 second_key_list에 있는 키 중 하나를 찾아서,
+        해당 키와 매칭되는 matching_row_cells의 값을 반환합니다.
+
+        매개변수:
+        first_row_cells (list): 테이블 첫 번째 행의 셀 목록 (첫 번째 열 제외).
+        matching_row_cells (list): 매칭된 행의 셀 목록 (첫 번째 열 제외).
+        second_key_list (list): first_row_cells에서 매칭할 수 있는 키들의 리스트.
+
+        반환값:
+        str 또는 None: 매칭된 키에 해당하는 matching_row_cells의 텍스트.
+                    매칭되는 키가 없으면 None을 반환합니다.
+
+        함수 작동 방식:
+        - 먼저 second_key_list에 있는 각 키에 대해 first_row_cells에서 정확히 일치하는 
+        항목이 있는지 확인합니다.
+        - 정확히 일치하는 키가 있으면 해당 키의 인덱스를 사용해 matching_row_cells에서 
+        같은 인덱스의 값을 반환합니다.
+        - 정확히 일치하는 키가 없으면, fuzz.ratio를 사용해 80% 이상의 유사성을 가진 항목을 
+        찾아서 그에 해당하는 값을 반환합니다.
+        """
+        # Iterate over the second_key_list and find any key that matches in first_row_cells
+        for key in second_key_list:
+            # Try exact match first
+            if key in first_row_cells:
+                index = first_row_cells.index(key)
+            else:
+                # If no exact match, use fuzz.ratio to find approximate matches
+                index = -1
+                for i, cell_text in enumerate(first_row_cells):
+                    if fuzz.ratio(key, cell_text) >= 80:
+                        index = i
+                        break  # Stop at the first match
+            
+            # If we found a valid index, return the corresponding matching row cell
+            if index != -1 and index < len(matching_row_cells):  # Ensure index is valid and within bounds
+                return matching_row_cells[index]
+        
+        return None  # Return None if no key from second_key_list is found
+
+
+    def find_matching_rows(self, has_second_dict_elements):
+        """
+        이 함수는 DOCX 문서의 테이블을 순회하면서 첫 번째 셀에 우선순위 키워드(priority)가 
+        있는 행을 찾아, 매칭된 행에서 관련 텍스트를 추출합니다.
+
+        매개변수:
+        docx_path (str): DOCX 파일 경로.
+        has_second_dict_elements (list): 우선순위 키워드('priority')와 두 번째 키('second_key')를 포함한 
+                                        딕셔너리 목록. 'priority'는 행의 첫 번째 셀에서 검색할 키워드 리스트이고,
+                                        'second_key'는 각 테이블의 첫 번째 행과 매칭할 키 리스트입니다.
+
+        반환값:
+        list: (first_row_cells, matching_row_cells)의 튜플 리스트를 반환합니다. 
+            first_row_cells는 테이블 첫 번째 행의 셀들이고, matching_row_cells는 우선순위 키워드와 매칭된 행의 셀들입니다.
+
+        함수 작동 방식:
+        - DOCX 파일을 불러오고, 문서 내 모든 테이블을 순회합니다.
+        - 각 테이블의 첫 번째 행을 가져오고, 이후 행의 첫 번째 셀과 우선순위 키워드를 비교합니다.
+        - 정확한 매칭 또는 fuzz.ratio를 사용해 95% 이상의 유사도가 있는 경우 매칭된 행을 찾습니다.
+        - 매칭된 행에 대해 find_value_match_first_row를 호출하여 second_key를 기준으로 값을 추출합니다.
+        - 해당 값을 정리(clean_text)한 후 출력하고, 결과 리스트에 모든 행 데이터를 저장합니다.
+        """
+        
+        result = []
+        
+        # Loop through all tables in the DOCX file
+        for element in has_second_dict_elements:
+            priority_keywords = element['synonym']['priority']
+            second_keys = element['second_key']
+            for table in self.doc.tables:
+                if len(table.rows) == 0:
+                    continue
+
+                # Get the first row of the table
+                first_row_cells = [cell.text.strip() for cell in table.rows[0].cells] [1:]
+
+                # Loop through the rest of the rows
+                for row in table.rows[1:]:
+                    first_cell_text = row.cells[0].text.strip()
+                    
+                    # Check if the first cell text matches any priority keyword
+                    if (first_cell_text in priority_keywords) or any(fuzz.ratio(first_cell_text, priority_key) >= 95 for priority_key in priority_keywords):
+                        # Collect other cells in the matching row
+                        matching_row_cells = [cell.text.strip() for cell in row.cells[1:]]
+                        
+                        # Append the result as a tuple (first row cells, matching row cells)
+                        result.append((first_row_cells, matching_row_cells))
+                        #first_row = ['제조사명\n(수입업자명)', '모델명', 'KC 인증번호']
+                        #matching_row = ['㈜익스프레스리프트', 'EXPRESS-\nAS380(MRL)', 'AAB10-H005-19002']
+
+                        found_text= find_value_match_first_row(first_row_cells, matching_row_cells, second_keys)
+                        cleaned_found_text = clean_text(foudn_text)
+                        print(found_text)
+                        # found_text should be value of the target keyword
+                        result.append([element[key], cleaned_found_text, found_text, ''])
+
+
+        
+        return result
+
+    def treat_second_key(self):
+        """
+        """
+        has_secondkey_dict_elements = []
+        for ele in self.key_value:
+            if ele['second_key']:
+                has_secondkey_dict_elements.append(ele)
+
+
+        print('%%%%%%%%%%%%%%%%%%')
+        print(has_secondkey_dict_elements)
+        print('%%%%%%%%%%%%%%%%%%')
+
+        return self.find_matching_rows(has_second_dict_elements)
+
 
 
     def extract_data(self):
@@ -484,6 +602,8 @@ class KeyValueExtractor:
         print(table_data)
         print('table_Data#########################################################################')
         vertical_data = self.treat_extract_all_json()
+        second_key_data= self.treat_second_key()
+        table_data += second_key_data
 
 
         self.process_none_table_keys()  # 테이블이 아닌 키-값 쌍 처리
