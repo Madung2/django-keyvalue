@@ -27,9 +27,8 @@ environ.Env.read_env(env_file=BASE_DIR / '.env')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
-HOST = env('HOST')
-PORT = env('PORT')
-print('HOST', HOST, 'PORT', PORT)
+METATYPE = env.int('METATYPE',2)
+
 SECRET_KEY = env('SECRET_KEY')
 DEBUG = env('DEBUG')
 ALLOWED_HOSTS = ['*']
@@ -66,25 +65,34 @@ CORS_ALLOWED_ORIGINS = [
     'http://121.162.129.61:30100',  # 프론트엔드 도메인
     'http://192.168.14.155:8501',
     'http://127.0.0.1:8000',
+    'http://3.34.141.159:8000',
     'http://localhost:8000',
     'http://127.0.0.1:8501',
     'http://localhost:8501',
+    'http://shinhandemo.edentns.com:8000',
+    'http://121.162.129.61:30080'
 ]
 CORS_ORIGIN_WHITELIST = [
     'http://121.162.129.61:30100',  # 프론트엔드 도메인
     'http://192.168.14.155:8501',
     'http://127.0.0.1:8000',
+    'http://3.34.141.159:8000',
     'http://localhost:8000',
     'http://127.0.0.1:8501',
     'http://localhost:8501',
+    'http://shinhandemo.edentns.com:8000',
+    'http://121.162.129.61:30080'
 ]
 CSRF_TRUSTED_ORIGINS = [
     'http://121.162.129.61:30100',  # 프론트엔드 도메인
     'http://192.168.14.155:8501',
     'http://127.0.0.1:8000',
+    'http://3.34.141.159:8000',
     'http://localhost:8000',
     'http://127.0.0.1:8501',
     'http://localhost:8501',
+    'http://shinhandemo.edentns.com:8000',
+    'http://121.162.129.61:30080'
 ]
 SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 SESSION_COOKIE_SECURE = False
@@ -127,6 +135,15 @@ DATABASES = {
 }
 
 
+#### Celery Settings ########################################
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 
@@ -163,6 +180,11 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+
+
+# 미디어 파일이 저장될 디렉토리 경로
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = '/media/'
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
 # Default primary key field type

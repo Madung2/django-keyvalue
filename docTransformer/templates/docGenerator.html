@@ -1,0 +1,203 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DocGenerator</title>
+  <!-- font -->
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0" />
+  <!-- css & js -->
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/main1.css' %}" />
+  <link rel="icon" type="image/x-icon" href="{% static 'css/favicon.ico' %}">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+</head>
+<body>
+  <!-- include  -->
+  <!-- <div class="include-loading"></div> -->
+
+  <div class="container">
+    <div class="title-box">
+      <h1>DocGenerator</h1>
+      <div class="btn-box">
+        <button class="btnGyLine" onclick="refreshPage()">초기화</button>
+        <button class="btnGyLine">Logs</button>
+      </div>
+    </div>
+
+    <div class="form-box">
+      <div class="tit">
+        <h2>선택항목</h2>
+        <button>적용</button>
+      </div>
+      <div class="file-drag">
+        <form action="#">
+          <div class="file-name">
+            <label for="fileInput">파일 선택</label>
+            <input type="file" id="fileInput" name="fileInput"> 
+            <h5>또는 여기로 파일을 끌어오세요.</h5>
+          </div>
+          <input type=text class="upload-name regular" value="파일이름" placeholder="파일이름" readonly> 
+        </form>
+      </div>
+
+      <div class="info-box">
+        <div class="tit">
+          <h2>기본정보</h2>
+        </div>
+        <div class="table">
+          <table>
+            <tr>
+              <th>시행사</th>
+              <td><input type="text" id="developer" class="regular"></td>
+              <th>시공사</th>
+              <td><input type="text" id="constructor" class="regular"></td>
+            </tr>
+            <tr>
+              <th>신탁사</th>
+              <td><input type="text" id="trustee" class="regular"></td>
+              <th>당사여신금액</th>
+              <td><input type="text" id="loan_amount" class="regular"></td>
+            </tr>
+            <tr>
+              <th>대출기간</th>
+              <td><input type="text" id="loan_period" class="regular"></td>
+              <th>수수료</th>
+              <td><input type="text" id="fee" class="regular"></td>
+            </tr>
+            <tr>
+              <th>IRR</th>
+              <td><input type="text" id="irr" class="regular"></td>
+              <th>중도상환수수료</th>
+              <td><input type="text" id="prepayment_fee" class="regular"></td>
+            </tr>
+            <tr>
+              <th>연체이자율</th>
+              <td><input type="text" id="overdue_interest_rate" class="regular"></td>
+              <th>원금상환유형</th>
+              <td><input type="text" id="principal_repayment_type" class="regular"></td>
+            </tr>
+            <tr>
+              <th>이자상환기한</th>
+              <td><input type="text" id="interest_payment_period" class="regular"></td>
+              <th>상환후불여부</th>
+              <td><input type="text" id="deferred_payment" class="regular"></td>
+            </tr>
+            <tr>
+              <th>연대보증금액</th>
+              <td><input type="text" id="joint_guarantee_amount" class="regular"></td>
+              <th>금융주간사</th>
+              <td><input type="text" id="lead_arranger" class="regular"></td>
+            </tr>
+            <tr>
+              <th>회사</th>
+              <td><input type="text" id="company" class="regular"></td>
+              <th>생성일자</th>
+              <td><input type="text" id="created_at" class="regular" readonly></td>
+            </tr>
+            <tr>
+              <th>수정일자</th>
+              <td><input type="text" id="edited_at" class="regular" readonly></td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="tit">
+          <h2>선택정보</h2>
+        </div>
+        <div class="table">
+          <table>
+            <tr>
+              <th>영업일 기준</th>
+              <td>
+                <label><input type="radio" name="name01" class="regular"> 한국거래소 개장일</label>
+                <label><input type="radio" name="name01" class="regular"> 한국거래소 개장일</label>
+              </td>
+              <th>투자자 여부</th>
+              <td>
+                <label><input type="radio" name="name02" class="regular"> 한국거래소 개장일</label>
+                <label><input type="radio" name="name02" class="regular"> 한국거래소 개장일</label>
+              </td>
+            </tr>
+          </table>
+          <!-- 테이블 추가하면 중간에 구분선 생깁니다! -->
+          <table>
+            <tr>
+                <th>영업일 기준</th>
+                <td>
+                  <label><input type="radio" name="name01" class="regular"> 한국거래소 개장일</label>
+                  <label><input type="radio" name="name01" class="regular"> 한국거래소 개장일</label>
+                </td>
+                <th>투자자 여부</th>
+                <td>
+                  <label><input type="radio" name="name02" class="regular"> 한국거래소 개장일</label>
+                  <label><input type="radio" name="name02" class="regular"> 한국거래소 개장일</label>
+                </td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="btn-box">
+          <button id="submit-button">생성하기</button>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // 파일이름
+    $("#fileInput").on('change',function(){
+      var fileName = $("#fileInput").val();
+      $(".upload-name").val(fileName);
+
+      var fileName = document.querySelector('.file-name');
+      var uploadName = document.querySelector('.upload-name');
+
+      if (event.target.files.length > 0) {
+          fileName.style.display = 'none';
+          uploadName.style.display = 'block';
+      } else {
+          uploadName.style.display = 'none';
+          fileName.style.display = 'block';
+      }
+    });
+    document.getElementById('submit-button').addEventListener('click', function() {
+      const formData = new FormData();
+      formData.append('developer', document.getElementById('developer').value);
+      formData.append('constructor', document.getElementById('constructor').value);
+      formData.append('trustee', document.getElementById('trustee').value);
+      formData.append('loan_amount', document.getElementById('loan_amount').value);
+      formData.append('loan_period', document.getElementById('loan_period').value);
+      formData.append('fee', document.getElementById('fee').value);
+      formData.append('irr', document.getElementById('irr').value);
+      formData.append('prepayment_fee', document.getElementById('prepayment_fee').value);
+      formData.append('overdue_interest_rate', document.getElementById('overdue_interest_rate').value);
+      formData.append('principal_repayment_type', document.getElementById('principal_repayment_type').value);
+      formData.append('interest_payment_period', document.getElementById('interest_payment_period').value);
+      formData.append('deferred_payment', document.getElementById('deferred_payment').value);
+      formData.append('joint_guarantee_amount', document.getElementById('joint_guarantee_amount').value);
+      formData.append('lead_arranger', document.getElementById('lead_arranger').value);
+      formData.append('company', document.getElementById('company').value);
+      formData.append('created_at', document.getElementById('created_at').value);
+      formData.append('edited_at', document.getElementById('edited_at').value);
+
+      fetch('YOUR_API_ENDPOINT', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Success:', data);
+        // Add additional logic here if needed
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+      });
+    });
+  </script>
+</body>
+</html>

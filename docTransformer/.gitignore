@@ -7,8 +7,6 @@
 *.pyc
 __pycache__/
 local_settings.py
-db.sqlite3
-db.sqlite3-journal
 media
 
 # If your build process includes running collectstatic, then you probably don't need or want to include staticfiles/
@@ -322,5 +320,6 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
-
-# End of https://www.toptal.com/developers/gitignore/api/python,linux,windows,visualstudiocode,django
+db.sqlite3
+# End of https://www.toptal.com/developers/gitignore/api/python,linux,windows,visualstudiocode,djangodocTransformer/db.sqlite3
+docTransformer/db.sqlite3

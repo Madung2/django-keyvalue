@@ -12,11 +12,14 @@
   <!-- <link rel="stylesheet" href="./css/reset.css" /> -->
   <link rel="stylesheet" href="{% static 'css/main.css' %}" />
   <link rel="stylesheet" href="{% static 'css/reset.css' %}" />
+  <link rel="icon" type="image/x-icon" href="{% static 'css/favicon.ico' %}">
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
   <!-- jszip 라이브러리를 포함합니다. -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.6.0/jszip.min.js"></script>
   <!-- docx-preview 라이브러리를 포함합니다. -->
   <script src="https://unpkg.com/docx-preview@0.3.0/dist/docx-preview.min.js"></script>
+  <script src="https://mozilla.github.io/pdf.js/build/pdf.js"></script>
+  <script src="https://mozilla.github.io/pdf.js/web/viewer.js"></script>
   <!----favicon--->
 
   <style>
@@ -33,21 +36,93 @@
       width: 100px; /* 적절한 크기로 변경하세요 */
       height: auto; /* 비율을 유지하며 크기 조정 */
     }
+
+    .popup {
+      display: none;
+      position: fixed;
+      z-index: 100;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 400px;
+      background-color: white;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .popup-content {
+      margin: 20px 0;
+    }
+
+    .popup .close {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      cursor: pointer;
+      font-size: 20px;
+    }
+
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 99;
+      display: none;
+    }
+    .message {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    display: none;
+    }
+
+    .message.success {
+        color: green;
+        background-color: #e0ffe0;
+    }
+
+    .message.error {
+        color: red;
+        background-color: #ffe0e0;
+    }
+    #message-box {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      background-color: #87CEEB;
+      /* color: white; */
+      padding: 10px;
+      border-radius: 5px;
+      opacity: 0;
+      visibility: visible; /* Ensure the element is visible */
+      transition: opacity 2s ease-in-out;
+      z-index: 100000; /* Ensure the message box is above other elements */
+    }
   </style>
 </head>
 <body>
   
   <div class="container">
     <div class="title-box">
+
       <h1>TSExpert</h1>
       <div class="btn-box">
         <button class="btnGyLine" onclick="refreshPage()">초기화</button>
-        <button class="btnGyLine">Logs</button>
+        <button onclick="openPopup()">다량문서업로드</button>
+        <!-- /<button class="btnGyLine">Logs</button> -->
         <button onclick="handleDownload()">다운로드</button>
+        <button onclick="collectAndSaveKeyValue()">저장</button>
+        <button class="btnGyLine" onclick="renderAdmin()">Admin</button>
+        <button onclick="runGenerator()">DocGen</button>
       </div>
     </div>
-    
-    <div class="file-box">
+
+    <div class="file-box" id="drop-zone">
       <form action="#">
         <div class="file-name">
           <label for="fileInput">파일 찾기</label>
@@ -74,7 +149,7 @@
     
           <div class="data-box">
 
-            <h2>데이터</h2>
+            <h2>데이터 </h2>
             <div class="table-box">
               <img id="loading-image" class="loading-image" src="{% static 'loading.svg' %}" alt="loading" />
               <table>
@@ -87,11 +162,73 @@
     </div>
   </div>
 
+  <!-- 팝업 오버레이 -->
+  <div class="overlay" id="overlay" onclick="closePopup()"></div>
+  <!-- 팝업 내용 -->
+  <div id="fileUploadPopup" class="popup">
+    <span class="close" onclick="closePopup()">&times;</span>
+    <div class="popup-content">
+      <div class="file-box">
+        <form action="#">
+          <div class="file-name">
+            <label for="fileInput2">파일 찾기</label>
+            <input type="file" id="fileInput2" name="fileInput2" multiple> 
+            <input class="upload-name" value="파일을 첨부해 주세요." placeholder="파일을 첨부해 주세요." readonly>
+          </div>
+        </form>
+      </div>
+      <div id="message" class="message"></div> <!-- Container for the message -->
+      
+    </div>
+    
+
   <script>
-    const HOST = '{{ HOST }}';
-    //const HOST = 'doctransformer';
-    const PORT = '{{ PORT }}';
-    console.log('HOST:', HOST, 'PORT:', PORT)
+
+    const keyMapping = {
+    '시행사': 'developer',
+    '시공사': 'constructor',
+    '신탁사': 'trustee',
+    '당사여신금액': 'loan_amount',
+    '대출기간': 'loan_period',
+    '수수료': 'fee',
+    'IRR': 'irr',
+    '중도상환수수료': 'prepayment_fee',
+    '연채이자율': 'overdue_interest_rate',
+    '원금상환유형': 'principal_repayment_type',
+    '이자상환기한': 'interest_payment_period',
+    '상환후불여부': 'deferred_payment',
+    '연대보증금액': 'joint_guarantee_amount',
+    '금융주간사': 'lead_arranger',
+    '회사': 'company'
+};
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('fileInput');
+    const uploadName = document.querySelector('.upload-name');
+
+    dropZone.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    dropZone.addEventListener('dragover', (event) => {
+      event.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', (event) => {
+      event.preventDefault();
+      dropZone.classList.remove('dragover');
+      const files = event.dataTransfer.files;
+      if (files.length > 0) {
+        fileInput.files = files;
+        uploadName.value = files[0].name;
+        const event = new Event('change');
+        fileInput.dispatchEvent(event);
+      }
+    });
 
     const getCookie = (name) => {
       let cookieValue = null;
@@ -110,44 +247,141 @@
 
     const csrftoken = getCookie('csrftoken');
     console.log('csrftoken:', csrftoken)
+    const renderAdmin = () => {
+            window.open("{% url 'admin:index' %}", "_blank");
+        }
     //const PORT = '8081'
     const refreshPage = () => location.reload();
+
+    const collectAndSaveKeyValue = () => {
+        const tableBody = document.getElementById('tableBody');
+        const rows = tableBody.getElementsByTagName('tr');
+        const data = {};
+
+        for (let i = 0; i < rows.length; i++) {
+            const key = rows[i].getElementsByClassName('key')[0].textContent;
+            const value = rows[i].getElementsByClassName('value')[0].getElementsByTagName('input')[0].value;
+            const englishKey = keyMapping[key];
+            
+            data[englishKey] = value;
+        }
+        console.log('saveKeyValuedata:', data)
+        const fileInputValue = document.getElementById('fileInput').value;
+        data['og_file'] = fileInputValue; // 데이터를 'og_file' 키로 추가
+        saveKeyValue(data);
+
+    };
+
+    const saveKeyValue = async (input_data) => {
+    console.log('input_data', input_data);
+    const formData = new FormData();
+    for (const key in input_data) {
+        if (input_data.hasOwnProperty(key)) {
+            formData.append(key, input_data[key]);
+        }
+    }
+    try {
+        const response = await fetch('/ts_expert/save_key_value/', {
+            method: 'POST',
+            headers: {
+                //'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: formData
+        });
+        const data = await response.json();
+        if (data.status === 'success') {
+            console.log('Data saved successfully:', data);
+            return data;
+        } else {
+            console.error('Error saving data:', data);
+            return data;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        return {"status": "error", "message": "failed sending API"};
+    }
+};
     document.addEventListener('DOMContentLoaded', () => {
       let uploadedFile = null; // 업로드된 파일을 저장할 변수
 
       const handlePreviewFile = async (file, fileName) => {
         const container = document.getElementById('fileViewer');
-        try {
-          const arrayBuffer = await file.arrayBuffer();
-          await docx.renderAsync(arrayBuffer, container, null, {
-            className: "docx",
-            inWrapper: true,
-            ignoreWidth: false,
-            ignoreHeight: false,
-            ignoreFonts: false,
-            breakPages: true,
-            ignoreLastRenderedPageBreak: true,
-            experimental: false,
-            trimXmlDeclaration: true,
-            useBase64URL: false,
-            renderChanges: false,
-            renderHeaders: true,
-            renderFooters: true,
-            renderFootnotes: true,
-            renderEndnotes: true,
-            renderComments: true,
-            debug: false,
-        });
-          console.log("docx: finished");
-        } catch (error) {
-          console.error('Error while rendering docx preview', error);
+
+        // 컨테이너의 기존 내용을 제거합니다.
+        container.innerHTML = '';
+        console.log('this is file', file)
+        console.log('thisis filetype', file.type)
+        console.log('fileName', fileName)
+
+        if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || file.name.endsWith('.docx')) {
+          try {
+            console.log('this is docx')
+            const arrayBuffer = await file.arrayBuffer();
+            await docx.renderAsync(arrayBuffer, container, null, {
+              className: "docx",
+              renderComments: true,
+              comments: true,
+            });
+            console.log("docx: finished");
+          } catch (error) {
+            console.error('Error while rendering docx preview', error);
+          }
+        } else if (file.type === 'application/pdf') {
+          const fileURL = URL.createObjectURL(file);
+          const iframe = document.createElement('iframe');
+          iframe.src = fileURL;
+          iframe.width = '100%';
+          iframe.height = '100%'; // 필요에 따라 높이를 조정하세요
+          iframe.style.height = 'calc(100vh - 20px)';
+          container.appendChild(iframe);
+          console.log("pdf: displayed");
+        } else {
+          console.log('Unsupported file type');
         }
       };
-      
+
+      document.getElementById('fileInput2').addEventListener('change', async function(event) {
+        const files = event.target.files;
+        for (let i = 0; i < files.length; i++) {
+            console.log('File Name:', files[i].name);
+            console.log('File Size:', files[i].size);
+            console.log('File Type:', files[i].type);
+            
+            const formData = new FormData();
+            formData.append('file', files[i]);
+            const result = await fetchKeyValue(formData);
+            console.log('result',i,':', result.data)
+            console.log('result_fileloc')
+            const jsonResult = {};
+            result.data.forEach(subArray => {
+                const [key, value] = subArray;  // 배열의 첫 번째 요소는 키, 두 번째 요소는 값
+                const englishKey = keyMapping[key];
+                jsonResult[englishKey] = value;
+                jsonResult['og_file'] = files[i].name
+            });
+            console.log('jsonResult', jsonResult)
+            
+            const res = await saveKeyValue(jsonResult)
+            console.log(res)
+            if (res.status === 'success') {
+              console.log ('res1', res)
+            const messageContainer = document.getElementById('message');
+            messageContainer.style.display = 'block';
+              messageContainer.textContent = `${res.res.og_file}저장 성공`;
+              messageContainer.className = 'message success';
+            } else {
+              console.log('res2', res)
+              messageContainer.textContent = `저장 실패: ${res}`;
+              messageContainer.className = 'message error';
+            }
+            
+        }
+    });
       const fetchKeyValue = async (formData) => {
         try {
-          console.log(`http://${HOST}:${PORT}/ts_expert/extract_key_value/`)
-          const response = await fetch(`http://${HOST}:${PORT}/ts_expert/extract_key_value/`, {
+          console.log(`/ts_expert/extract_key_value/`)
+          const response = await fetch(`/ts_expert/extract_key_value/`, {
             method: "POST",
             headers: {
               'X-CSRFToken': csrftoken
@@ -166,9 +400,10 @@
         }
       };
 
+
       const fetchExel = async (formData) => {
         try {
-          const response = await fetch(`http://${HOST}:${PORT}/ts_expert/extract_xl/`, {
+          const response = await fetch(`/ts_expert/extract_xl/`, {
             method: "POST",
             headers: {
               'X-CSRFToken': csrftoken
@@ -223,7 +458,39 @@
           tableBody.appendChild(row);
 
           row.addEventListener('click', (e) => handleRowClick(e, original_value, pos_idx));
+            // 더블 클릭하면 input을 편집 가능하도록 설정
+          input.addEventListener('dblclick', () => {
+            input.readOnly = false;
+            input.focus();
+          });
+
+          // 포커스를 잃으면(편집이 끝나면) input을 읽기 전용으로 설정하고 값 저장
+          input.addEventListener('blur', () => {
+            input.readOnly = true;
+            const newValue = input.value;
+            // 여기서 newValue를 저장하는 로직을 추가할 수 있습니다.
+            console.log(`New value for ${key}: ${newValue}`);
+            // 예를 들어, 서버에 변경된 값을 저장하는 AJAX 요청을 보낼 수 있습니다.
+          });
+
+          // Enter 키를 누르면 편집을 종료하고 값을 저장
+          input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+              input.blur();
+            }
+          });
         });
+      };
+      const saveNodesToFile = (nodes) => {
+        //const nodeTexts = Array.from(nodes).map(node => node.textContent).join('\n\n');
+        //const blob = new Blob([nodeTexts], { type: 'text/plain' });
+        //const url = URL.createObjectURL(blob);
+        //const a = document.createElement('a');
+        //a.href = url;
+        //a.download = 'highlighted_nodes.txt';
+        //a.click();
+        //URL.revokeObjectURL(url);
+        console.log(nodes[0])
       };
 
       const normalizeString = (str) => {
@@ -231,6 +498,7 @@
       };
 
       const searchAndHighlight = (searchText, pos_idx) => {
+        console.log(searchText, pos_idx )
         let processedSearchText = processSearchText(searchText)
         
         const container = document.getElementById('fileViewer');
@@ -244,10 +512,12 @@
         };
 
         const nodes = container.querySelectorAll("p");
+
         const normalizedSearchText = normalizeString(processedSearchText);
         let firstMatchNode = null;
         let matchCount = 0;
         let targetMatchNode = null;
+        saveNodesToFile(nodes);
         nodes.forEach(node => {
           if (node.nodeType === Node.ELEMENT_NODE) {
             let combinedText = '';
@@ -258,6 +528,7 @@
             });
 
             const normalizedCombinedText = normalizeString(combinedText);
+            
 
             const regex = new RegExp(`(${normalizedSearchText})`, 'gi');
 
@@ -292,8 +563,10 @@
         event.preventDefault();
         searchAndHighlight(value, pos_idx);
       };
+      
 
       $("#fileInput").on('change', async function(event) {
+        console.log('fileInput on change')
         var fileName = $(this).val().split("\\").pop();
         $(".upload-name").val(fileName);
 
@@ -311,10 +584,23 @@
 
           try {
             await handlePreviewFile(file, fileName);
-            const data = await fetchKeyValue(formData);
-            populateTable(data);
+            const response = await fetchKeyValue(formData);
+            populateTable(response.data);
+
+            console.log('file_location<-need to view this file', response.file_url)
+            if (response.file_url) {
+              const convertedFileResponse = await fetch(response.file_url);
+              if (!convertedFileResponse.ok) {
+                  throw new Error('Failed to fetch converted file');
+              }
+              const convertedFileBlob = await convertedFileResponse.blob();
+              const convertedFile = new File([convertedFileBlob], fileName.replace(/\.[^/.]+$/, ".docx"));
+              await handlePreviewFile(convertedFile, convertedFile.name);
+          }
           } catch (error) {
             document.getElementById("message").innerText = "Error uploading file.";
+          } finally {
+            isUploading = false;  // 업로드 완료 후 다시 업로드 가능하게 변경
           }
         } else {
           initialBox.style.display = 'block';
@@ -336,6 +622,110 @@
         }
       };
     });
+    const openPopup = () => {
+      document.getElementById('fileUploadPopup').style.display = 'block';
+      document.getElementById('overlay').style.display = 'block';
+    }
+
+    const closePopup = () => {
+      document.getElementById('fileUploadPopup').style.display = 'none';
+      document.getElementById('overlay').style.display = 'none';
+    }
+    const runGenerator = () =>{
+      fetchGenerator()
+      // showMessage(`파일명을 사용해 DocGen이 성공적으로 생성되었습니다`)
+      fetchGeneratorData()
+    }
+    const showMessage = (message) => {
+      console.log(message)
+      const messageBox = document.createElement('div');
+      messageBox.id = 'message-box';
+      messageBox.innerText = message;
+      document.body.appendChild(messageBox);
+      console.log('messageBox created and added to body:', messageBox);
+
+      // Show the message
+      setTimeout(() => {
+        messageBox.style.opacity = 1;
+        console.log('Message box shown');
+      }, 100);
+
+      // Hide the message after 3 seconds
+      setTimeout(() => {
+        messageBox.style.opacity = 0;
+        console.log('Message box hidden');
+        setTimeout(() => {
+          document.body.removeChild(messageBox);
+          console.log('Message box removed');
+        }, 2000); // Wait for the transition to complete before removing
+      }, 20000);
+    };
+    const fetchGenerator = () => {
+    console.log('runGen start');
+
+    // formData와 csrftoken이 이미 정의되어 있다고 가정합니다.
+    const formData = new FormData();
+    // formData.append('key', 'value'); // 필요한 데이터를 formData에 추가하세요.
+    // const csrftoken = 'your-csrf-token'; // CSRF 토큰 값을 설정하세요.
+
+    fetch('/ts_expert/run_generator/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken
+        },
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(errorData => {
+                throw new Error(`Error saving data: ${errorData.error}`);
+            });
+        }
+        return response.blob();
+    })
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'res.docx'; // 다운로드할 파일 이름
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        console.log('File downloaded successfully');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+};
+const fetchGeneratorData = () => {
+
+    fetch('/ts_expert/run_generator_data/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(errorData => {
+                throw new Error(`Error fetching data: ${errorData.error}`);
+            });
+        }
+        return response.json();
+    })
+    .then(resData => {
+        console.log('Data received:', resData);
+        // Handle the received data
+        // showMessage(`Received data: ${JSON.stringify(resData)}`);
+        showMessage(`${resData.og_file}을(를) 기준으로 생성`);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage(`Error: ${error.message}`);
+    });
+};
   </script>
 </body>
 </html>
