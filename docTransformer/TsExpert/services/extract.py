@@ -26,7 +26,7 @@ class KeyValueExtractor:
         self.all_syn = [syn for item in key_value if item["synonym"] for syn in item["synonym"]["all"]]
         self.all_priority_syn = [syn for item in key_value if item["synonym"] for syn in item["synonym"]["priority"]]
         self.NoneTables = [item for item in key_value if item["is_table"] == False ]
-        self.THRESHOLD = env.int('TSEXPERT_THRSHOLD')
+        self.THRESHOLD= 85 # env.int('TSEXPERT_THRSHOLD')
     
     def filter_function(self, key):
         key = key.strip()
