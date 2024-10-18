@@ -26,6 +26,20 @@ def remove_unicode_characters(text):
     return text
 
 def find_by_key(keyword, target_key):
+    """_summary_
+
+    Args:
+        keyword (_type_): _description_
+        target_key (_type_): _description_
+
+    Raises:
+        ValueError: _description_
+
+    Returns:
+        _type_: _description_
+    """
+    print('keyword', keyword)
+    print('target_key', target_key)
     for item in keyword:
         if item["key"] == target_key:
             return item  # get 메소드 사용으로 키가 없는 경우 None 반환
@@ -133,3 +147,8 @@ def clean_text(text):
     if text is None:
         return None
     return text.replace('\n', '').replace('\t', '').strip()
+
+
+def find_target_key_by_synonyms(synonym_key):
+    target_key =''
+    return target_key

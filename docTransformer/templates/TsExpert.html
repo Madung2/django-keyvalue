@@ -580,12 +580,13 @@
           const formData = new FormData();
           const file = event.target.files[0];
           uploadedFile = file;
-          formData.append("file", file);
-
+          formData.append("doc", file);
+          console.log('fileInput1:', file)
           try {
             await handlePreviewFile(file, fileName);
             const response = await fetchKeyValue(formData);
             populateTable(response.data);
+            
 
             console.log('file_location<-need to view this file', response.file_url)
             if (response.file_url) {

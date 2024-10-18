@@ -10,6 +10,7 @@ COPY . /app
 RUN apt-get update && apt-get install -y \
     docker.io \
     openjdk-17-jdk \
+    vim \
     gcc \
     g++ \
     build-essential \

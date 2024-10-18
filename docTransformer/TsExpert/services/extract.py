@@ -8,14 +8,141 @@ from docx.oxml.ns import qn
 from .utils import *
 from .find_pos import PosFinder
 from .convert_pdf import convert_docx_to_pdf
+from .table_detaction import DocxTableTypeDetector
 from DocTransformer.settings import env
 
+
+class DocxTableExtractor():
+    """docx 테이블을 타입별로 분류 추출한다.
+    조건1) 가로테이블
+    조건2) 세로 테이블
+    조건3) 가로 복수 테이블
+    """
+    def __init__(self, table):
+        self.table = table
+        self.detector = DocxTableTypeDetector(self.table)
+        self.table_type_num = self.detector.type_num
+        self.table_data = self.detector.table_extract
+        self.extracted_key_values = {}
+        self.extract_data()
+        
+    
+    def _extract_horizontal_table(self):
+        """가로 테이블 추출
+        가로테이블은 [0]번 row가 키. 단 연달아 배경색이 있는 경우 글자 내용이 다르면 둘다 합쳐서 키로 상정한다.
+        배경색이 없는 첫번째 데이터가 밸류.
+        """
+        print('extracted from horizontal table')
+        result = {}
+        for row in self.table_data:
+            if 'bg'in row[0] and row[0]['bg']!=False:
+                # 첫번째 열의 배경색이 있으면 키로 설정
+                key = row[0]['txt']
+
+                # 연속된 배경색이 있는 경우를 처리
+                for i in range(1, len(row)):
+                    if 'bg' in row[i] and row[i]['bg']!= False:
+                        # 배경색이 있고, 텍스트가 다르면 키를 합친다
+                        if row[i]['txt'] != key:
+                            key+= " + " + row[i]['txt']
+                    else:
+                        # 배경색이 없는 첫번째 데이터를 값으로 설정
+                        value =row[i]['txt']
+                        result[key] = value
+                        break
+            else:
+                # 예외적으로 한 줄에 배경색이 없는데 horizontal_table로 분류된 케이스가 있음.
+                # 이 경우엔 [0]번 column이 키 [1]번 column이 value
+                no_bg_found = all('bg' not in cell or cell['bg'] == False for cell in row)
+                if no_bg_found and len(row) > 1:
+                    key = row[0]['txt']
+                    if row[1]['txt'].strip()!='':
+                        value =row[1]['txt']
+                    elif len(row) > 2:
+                        value = row[2]['txt']
+                    else:
+                        value =''
+
+                    result[key] = value
+                    print('k', key, 'v',value)
+                
+        self.extracted_key_values = result
+    
+    def _extract_vertical_table(self):
+        """세로 테이블 추출
+        세로 테이블은 [0]번 row에 있는 항목들이 각각 키로 사용된다.
+        연속된 row 같은 col에 배경색이 있다면, 해당 키들은 ' + '로 합쳐서 사용한다.
+        각 col에서 배경색이 없는 첫 번째 데이터를 밸류로 설정.
+        """
+        print('extracted from verticle table')
+        result = {}
+        col_count = len(self.table_data[0])
+        for col_idx in range(col_count):
+            key= None
+            value=None
+
+            #같은 column에 대해 각 row를 순차적으로 탐색
+            for row in self.table_data:
+                if 'bg' in row[col_idx] and row[col_idx]['bg'] != False:
+                    if key:
+                        key+= ' + ' + row[col_idx]['txt']
+                    else:
+                        key =row[col_idx]['txt']
+                elif not value and 'bg' in row[col_idx] and row[col_idx]['bg'] == False:
+                    # 배경색이 없는 첫번째 데이터를 값으로 설정
+                    value = row[col_idx]['txt']
+                    break
+            # 키와 값이 모두 설정된 경우 결과에 추가
+            if key and value:
+                result[key] = value
+        self.extracted_key_values = result
+    
+    def _extract_horizontal_plural_table(self):
+        """가로 복수 테이블 추출
+        이 경우엔 키와 밸류가 연달아 붙어있다고 가정. 한 줄에는 복수의 키밸류 세트가 있을 수 있음.
+        왼쪽에 배경색이 있는 셀이 있고 그 직후에 배경색이 없는 셀이 있으면 키밸류로 인지.  
+        """
+        print('extracted from horizontal plural table')
+        result = {}
+        for row in self.table_data:
+            #row_result ={}
+
+            #현재 행의 셀을 순차적으로 탐색
+            col_idx = 0 
+            while col_idx < len(row):
+                # 현재 셀이 배경색의 가진다면, 그 셀을 키로 설정
+                if 'bg' in row[col_idx] and row[col_idx]['bg'] != False:
+                    key =row[col_idx]['txt']
+
+                    # 그 다음셀의 배경색이 없으면 값을 설정
+                    if col_idx +1 < len(row) and 'bg' in row[col_idx+1] and row[col_idx+1]['bg']==False:
+                        value = row[col_idx+1]['txt']
+                        result[key] = value
+                        
+                # 이번 값 처리 완료 다음 줄 넘어감
+                col_idx += 1
+            
+            #if row_result:
+            #    result.add(row_result)
+
+        self.extracted_key_values = result
+    
+    def extract_data(self):
+
+        if self.table_type_num == 1:
+            self._extract_horizontal_table()
+        elif self.table_type_num == 2:
+            self._extract_vertical_table()
+        elif self.table_type_num == 3:
+            self._extract_horizontal_plural_table()
+        else:
+            print('------please code this unknown file type--------')
 
 class NestedTableExtractor:
     def __init__(self, doc, key_value):
         self.doc = doc
         self.target_keys = [k_v['key'] for k_v in key_value if k_v['extract_all_json']]  
-        # self.target_texts = 
+        # self.target_texts = fextract_data
 
     @staticmethod
     def remove_escape(input_text):
@@ -261,10 +388,16 @@ class KeyValueExtractor:
         self.data = []  # 추출된 키-값 쌍을 저장할 리스트
         self.data_keys = set()  # 발견된 고유 키를 저장할 집합
         self.rep_keys = set()  # 발견된 대표 키를 저장할 집합
-        self.key_value = [k_v for k_v in key_value if not k_v['extract_all_json']]  
-        self.all_keys = [ele["key"] for ele in self.key_value]
+        self.key_value = [k_v for k_v in key_value if not k_v['extract_all_json']] # [{"key": "차주사", "value_type": "text", "type": "string", "is_table": false, "extract_all_json": false, "synonym": {"priority": ["차주(시행사)"], "all": ["차주(시행사)"], "pattern": []}, "second_key": [], "specific": false, "sp_word": null, "value": [], "split": []}]
+        self.all_keys = [ele["key"] for ele in self.key_value] # ["차주사", "신탁사"]
         self.all_syn = [syn for item in self.key_value if item["synonym"] for syn in item["synonym"]["all"]]
         self.all_priority_syn = [syn for item in self.key_value if item["synonym"] for syn in item["synonym"]["priority"]]
+        self.all_target_keys = {}
+        for ele in self.key_value:
+            if isinstance(ele.get('synonym',[]).get('all'),list):
+                for syn in ele['synonym']['all']:
+                    self.all_target_keys[syn] = ele['key']
+                
         self.NoneTables = [item for item in self.key_value if item["is_table"] == False ]
         self.THRESHOLD = env.int('TSEXPERT_THRSHOLD')
     
@@ -375,61 +508,73 @@ class KeyValueExtractor:
             if element.tag.endswith('tbl'):
                 return Table(element, cell._parent._parent)
         return None
+    
+    def find_res_from_extracted(self,extracted_dict, pos):
+        """
+        주어진 extracted_dict에서 키를 우선순위 리스트와 비교해 대표 키를 찾고,
+        해당 키와 값을 리스트에 추가하는 함수.
+        
+        Args:
+            extracted_dict (dict): 추출된 키-값 딕셔너리
+            all_syn (set): 우선순위 키들이 포함된 집합
+            all_target_keys (dict): 우선순위 키에 해당하는 대표 키 딕셔너리
+            pos (int): 현재 위치 값
 
+        Returns:
+            list: [[대표 키, 값, 위치], [대표 키, 값, 위치], ...] 형식의 리스트
+        """
+        res = []
+        for k, v in extracted_dict.items():
+            if k in self.all_syn:
+                t_k = self.all_target_keys[k]
+                res.append([t_k, v, pos])
+        return res
+
+  
     def process_tables(self):
+        """각 테이블 별로 돌면서 해당 키가 타겟에 있으면 키는 대표키 밸류는 그대로를 뽑는다.
+         returns:: [[k,v,pos], [k,v,pos]]
         """
-        문서 내 테이블을 처리하고 키-값 쌍을 추출합니다.
-        
-        :return: 테이블에서 추출된 키-값 쌍의 리스트.
-        """
-        print('3: process_tables')
+        res = []
+        pos = 0
+        for table in self.doc.tables:
+            ext = DocxTableExtractor(table)
+            extracted_dict = ext.extracted_key_values #ext.extracted_ke_values는 키:밸류로 된 딕셔너리
+            table_res =self.find_res_from_extracted(extracted_dict, pos)
+            res+= table_res
+        return res
+    
 
-        table_data = []
-        for i, table in enumerate(self.doc.tables):  
-            table_number = i 
-            if len(table.columns) >= 2:  # 테이블이 최소 2개의 열을 가지고 있는지 확인
-                for i_r, row in enumerate(table.rows):  
+
+    def process_target_key_inner_table(self, res):
+        """0번 셀에 타겟 텍스트가 있으면 그걸 기준으로 오른쪽에 테이블이 있는지 확인하고, 있으면 처리합니다."""
+        target_text = ['채권보전']  # 타겟 키워드 목록
+        pos=0
+        for table in self.doc.tables:
+            for row in table.rows:
+                # 첫 번째 셀에 타겟 텍스트가 있는지 확인
+                if any(text in row.cells[0].text for text in target_text):
+                    right_cell = row.cells[1]
                     
-                    #1) 옵션 1 첫번째 셀에서 키를 추출, & 2번째 셀에서밸류의 값을 추출..
-                    row_num = i_r
-                    value_cell = row.cells[1]
-                    key = remove_numbers_special_chars(row.cells[0].text.strip())  # 첫 번째 셀에서 키를 추출
-                    value = row.cells[1].text.strip()  # 두 번째 셀에서 값을 추출.
+                    # 오른쪽 셀에 테이블이 있는지 확인
+                    has_nested_table = False
+                    for ele in right_cell._element:
+                        if 'tbl' in ele.tag:
+                            # 중첩된 테이블이 발견되면 이를 python-docx의 Table 객체로 변환
+                            nested_table = Table(ele, self.doc)  # XML 요소를 Table 객체로 변환
+                            ext = DocxTableExtractor(nested_table)  # DocxTableExtractor로 추출
+                            extracted_dict = ext.extracted_key_values  # 추출된 딕셔너리 반환
+                            print('extracted', extracted_dict)  # 디버그용 출력 (필요 시 변경)
+                            has_nested_table = True
+                            inner_table_res = self.find_res_from_extracted(extracted_dict, pos)
+                            res+= inner_table_res
+                            break
 
-                    # 네스티드 테이블은 따로 추출
-                    nested_table = self.find_nested_table(value_cell)  # 값 셀에서 중첩된 테이블을 찾음
+                    if not has_nested_table:
+                        print(f"No nested table found for target text '{row.cells[0].text}'")
+        return res
 
-                    
-                    
-                    #############################################################################
-                    # 여기까지 key란:원본문서의 테이블 [0]번 셀에 있는 텍스트 value란:원본문서의 [1]번 셀에 있는 텍스트
-                    k, reps = self.filter_function(key)  # 키를 필터링하고 대표 키를 확인
-                    # print(k, reps)
-                    if k and (k not in self.data_keys):  # 키가 유효하고 이미 데이터 키 집합에 없는지 확인
-                        self.process_representatives_and_values(k, value, reps, table_data, self.data_keys, self.rep_keys, nested_table, table_number, row_num)
-                        # 대표 키와 값을 처리하고 데이터 리스트에 추가
-                    
-                    #2) 혹시 테이블의 0번째 셀이 아닌곳에 백그라운드 색이 적용되어 있고 그 오른쪽에도 셀이 있다면
-                    # 백그라운드색이 있는곳도 key로 추출하고 밸류는 그 오른쪽 셀로 적용 -> 이 경우에는 한줄에 여러개의 키밸류가 있을 수 있음
-                    for j, cell in enumerate(row.cells):
-                        if j > 0 and has_background_color(cell):  # 0번째 셀이 아닌 곳에서 백그라운드 색이 있을 경우
-                            key = remove_numbers_special_chars(cell.text.strip())  # 배경색이 있는 셀에서 키를 추출
-                            if j + 1 < len(row.cells):  # 오른쪽 셀 값 추출
-                                value = row.cells[j + 1].text.strip()
-                                k, reps = self.filter_function(key)
-                                if k and (k not in self.data_keys):
-                                    self.process_representatives_and_values(k, value, reps, table_data, self.data_keys, self.rep_keys, nested_table, table_number, row_num)
 
-        # print('Table Data: ', table_data)
-        for t in table_data:
-            f = PosFinder(self.doc)
-            f.set_target_info(t)
-            pos = f.find_occurrence_position()
-            t[2] = pos
-
-        
-        # print('Table Data2: ', table_data)
-        return table_data
 
     def extract_table_data_from_pdf(self):
         """
@@ -514,7 +659,7 @@ class KeyValueExtractor:
 
 
     def find_matching_rows(self, has_second_dict_elements):
-        """
+        """2차원 리스트를 찾는 함수 (priority: 첫번째 키, second_key = 두번째 키)
         이 함수는 DOCX 문서의 테이블을 순회하면서 첫 번째 셀에 우선순위 키워드(priority)가 
         있는 행을 찾아, 매칭된 행에서 관련 텍스트를 추출합니다.
 
@@ -605,22 +750,32 @@ class KeyValueExtractor:
         """
         문서에서 데이터를 추출합니다.
         
-        :return: 추출된 모든 데이터의 리스트.
+        :return: 추출된 모든 데이터의 리스트.[['차주사', '더블에스와이제일차', 0], ... ]
         """
         ## ✯ MAIN FUNCTION ✯ 
+        ##1) 먼저 테이블내 키밸류를 추출한다
         table_data = self.process_tables()  # 테이블 데이터 처리
-        table_data = self.add_not_extracted_column(table_data)
-        second_key_data= self.treat_second_key()
-        # table_data += second_key_data
-        table_data = self.update_table_data(table_data, second_key_data)
 
+        # 0번 셀을 기준으로 오른쪽 셀에 테이블이 있으면 그 안에서도 process_table을 실행
+        table_data = self.process_target_key_inner_table(table_data)
+        ##2) 찾지 못한 값은 그냥 빈칸을 넣어준다
+        table_data = self.add_not_extracted_column(table_data)
+        #3) 2차원리스트 일때 값을 찾는다. 2차원 리스트를 찾는 함수 (priority: 첫번째 키, second_key = 두번째 키) 
+        second_key_data= self.treat_second_key()
+        table_data = self.update_table_data(table_data, second_key_data)
+        ## 4) 모든 데이터 추출 extract_all_json 키 사용
         vertical_data = self.treat_extract_all_json()
 
+        ## 5) 테이블이 아닌 텍스트에서 NER로 키값 추출
         self.process_none_table_keys()  # 테이블이 아닌 키-값 쌍 처리
         self.data += table_data  # 추출된 테이블 데이터를 데이터 리스트에 추가
+        print('extract_data!!!!!!', self.data)
         return self.data  # 최종 데이터를 반환
     
     def add_not_extracted_column(self, table_data):
+        print('table_data###############')
+        print(table_data)
+        print('table_data###############')
         all_extracted_keys = [k for [k, v, pos] in table_data]
         for a in self.all_keys: 
             if a not in all_extracted_keys:
