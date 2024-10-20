@@ -11,7 +11,8 @@ from rest_framework.decorators import parser_classes
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework import status
-from .services.extract import KeyValueExtractor, NestedTableExtractor
+from .services.extract import KeyValueExtractor
+from .services.nested_table import NestedTableExtractor
 from .services.post_process import post_process
 #from .services.convert_pdf import convert_doc_to_docx, convert_hwp_to_docx
 from .services.convert_pdf import convert_to_docx

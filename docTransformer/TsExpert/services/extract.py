@@ -23,7 +23,8 @@ class DocxTableExtractor():
         self.detector = DocxTableTypeDetector(self.table)
         self.table_type_num = self.detector.type_num
         self.table_data = self.detector.table_extract
-        self.extracted_key_values = {}
+        self.extracted_key_values = {} # {k,v}
+        self.extracted_key_positions ={} #{k, pos}
         self.extract_data()
         
     
@@ -34,7 +35,8 @@ class DocxTableExtractor():
         """
         print('extracted from horizontal table')
         result = {}
-        for row in self.table_data:
+        result2 ={}
+        for row_idx, row in enumerate(self.table_data):
             if 'bg'in row[0] and row[0]['bg']!=False:
                 # 첫번째 열의 배경색이 있으면 키로 설정
                 key = row[0]['txt']
@@ -49,6 +51,7 @@ class DocxTableExtractor():
                         # 배경색이 없는 첫번째 데이터를 값으로 설정
                         value =row[i]['txt']
                         result[key] = value
+                        result2[key] = (row_idx,i)
                         break
             else:
                 # 예외적으로 한 줄에 배경색이 없는데 horizontal_table로 분류된 케이스가 있음.
@@ -58,16 +61,23 @@ class DocxTableExtractor():
                     key = row[0]['txt']
                     if row[1]['txt'].strip()!='':
                         value =row[1]['txt']
+                        value_position = 1
                     elif len(row) > 2:
                         value = row[2]['txt']
+                        value_position = 2
                     else:
                         value =''
+                        value_position = None
 
                     result[key] = value
-                    print('k', key, 'v',value)
+                    
+                    if value_position is not None:
+                        result2[key] = (row_idx, value_position)
+                
                 
         self.extracted_key_values = result
-    
+        self.extracted_key_positions =result2
+
     def _extract_vertical_table(self):
         """세로 테이블 추출
         세로 테이블은 [0]번 row에 있는 항목들이 각각 키로 사용된다.
@@ -76,13 +86,14 @@ class DocxTableExtractor():
         """
         print('extracted from verticle table')
         result = {}
+        result2 ={}
         col_count = len(self.table_data[0])
         for col_idx in range(col_count):
             key= None
             value=None
 
             #같은 column에 대해 각 row를 순차적으로 탐색
-            for row in self.table_data:
+            for row_idx, row in enumerate(self.table_data):
                 if 'bg' in row[col_idx] and row[col_idx]['bg'] != False:
                     if key:
                         key+= ' + ' + row[col_idx]['txt']
@@ -91,11 +102,14 @@ class DocxTableExtractor():
                 elif not value and 'bg' in row[col_idx] and row[col_idx]['bg'] == False:
                     # 배경색이 없는 첫번째 데이터를 값으로 설정
                     value = row[col_idx]['txt']
+                    value_position = row_idx
                     break
             # 키와 값이 모두 설정된 경우 결과에 추가
             if key and value:
                 result[key] = value
+                result2[key] = (value_position, col_idx)
         self.extracted_key_values = result
+        self.extracted_key_positions = result2
     
     def _extract_horizontal_plural_table(self):
         """가로 복수 테이블 추출
@@ -104,7 +118,9 @@ class DocxTableExtractor():
         """
         print('extracted from horizontal plural table')
         result = {}
-        for row in self.table_data:
+        result2 ={}
+
+        for row_idx, row in enumerate(self.table_data):
             #row_result ={}
 
             #현재 행의 셀을 순차적으로 탐색
@@ -118,6 +134,7 @@ class DocxTableExtractor():
                     if col_idx +1 < len(row) and 'bg' in row[col_idx+1] and row[col_idx+1]['bg']==False:
                         value = row[col_idx+1]['txt']
                         result[key] = value
+                        result2[key] = (row_idx, col_idx+1)
                         
                 # 이번 값 처리 완료 다음 줄 넘어감
                 col_idx += 1
@@ -126,6 +143,7 @@ class DocxTableExtractor():
             #    result.add(row_result)
 
         self.extracted_key_values = result
+        self.extracted_key_positions = result2
     
     def extract_data(self):
 
@@ -138,241 +156,6 @@ class DocxTableExtractor():
         else:
             print('------please code this unknown file type--------')
 
-class NestedTableExtractor:
-    def __init__(self, doc, key_value):
-        self.doc = doc
-        self.target_keys = [k_v['key'] for k_v in key_value if k_v['extract_all_json']]  
-        # self.target_texts = fextract_data
-
-    @staticmethod
-    def remove_escape(input_text):
-        # 정규 표현식을 사용하여 모든 이스케이프 문자를 찾아서 빈 문자열로 치환
-        return re.sub(r'[\n\t\r\f\v]', '', input_text)
-        
-    @staticmethod
-    def cell_has_background(cell):
-        """
-        Checks if the given cell has a background color.
-        To make it work we need to use xml library and show namespace
-        """
-        cell_xml = cell._tc.get_or_add_tcPr()
-        shd = cell_xml.find(qn('w:shd'))
-        if shd is not None and shd.get(qn('w:fill')) != 'auto':
-            return True
-        return False
-
-    def is_vertical_table(self, table):
-        """
-        Checks if the given table is a vertical table, meaning all cells in the first row have background color.
-        """
-        for cell in table.rows[0].cells:
-            if not self.cell_has_background(cell):
-                return False
-        return True
-
-    def extract_nested_tables(self, element):
-        """
-        Recursively extracts nested tables from the given document element and checks for background color in cells.
-        """
-        nested_tables_content = []
-
-        for table in element.tables:
-            for row in table.rows:
-                for cell in row.cells:
-                    if cell.tables:
-                        nested_table = cell.tables[0]  # Assume only one nested table per cell
-                        nested_table_data = []
-                        first_row_has_color = False
-                        for i, nested_row in enumerate(nested_table.rows):
-                            nested_row_data = []
-                            for nested_cell in nested_row.cells:
-                                if nested_cell.tables:
-                                    deeper_nested_tables = self.extract_nested_tables(nested_cell)
-                                    nested_row_data.append(deeper_nested_tables)
-                                else:
-                                    if self.cell_has_background(nested_cell):
-                                        nested_row_data.append((nested_cell.text, True))
-                                        if i == 0:  # Check if the first row has color
-                                            first_row_has_color = True
-                                    else:
-                                        nested_row_data.append((nested_cell.text, False))
-                            nested_table_data.append(nested_row_data)
-                        if first_row_has_color and self.is_vertical_table(nested_table):
-                            nested_tables_content.append(nested_table_data)
-                        break  # Break after finding the first nested table in the cell
-
-        return nested_tables_content
-
-    def extract_tables_with_background(self):
-        """
-        Extracts nested tables with first row colored from the given docx document.
-        """
-        return self.extract_nested_tables(self.doc)
-
-    @staticmethod
-    def find_target_in_tables(tables, target_text):
-        """
-        Finds target_text in the first column or row of each table.
-        Returns the table index, location (row or column), and cell content.
-        """
-        results = []
-        for table_index, table in enumerate(tables):
-            # Check the first row
-            for col_index, cell in enumerate(table[0]):
-                if isinstance(cell, list):
-                    continue
-                cell_text, has_background = cell
-                if target_text in cell_text:
-                    print('TARGET:::::', (table_index, 'row', col_index, cell_text))
-                    results.append((table_index, 'row', col_index, cell_text))
-
-            # Check the first column
-            for row_index, row in enumerate(table):
-                if isinstance(row[0], list):
-                    continue
-                cell_text, has_background = row[0]
-                if target_text in cell_text:
-                    print('TARGET:::::', (table_index, 'column', row_index, cell_text))
-                    results.append((table_index, 'column', row_index, cell_text))
-
-        return results
-
-    def find_table_type(self, tables, target_text):
-        """
-        Determines the table type based on whether '구분' is present in the target_text row or column.
-        Returns 'type2' if found, otherwise 'type1'.
-        """
-        gu_bun_text = '구분'
-        
-        for table in tables:
-            all_target_col = []
-            gu_bun_col = -1
-            
-            # Find all target columns containing target_text
-            for col_index, cell in enumerate(table[0]):
-                if isinstance(cell, list):
-                    continue
-                cell_text, has_background = cell
-                if target_text in cell_text:
-                    all_target_col.append(col_index)
-            
-            # Find the gu_bun column from the target columns
-            for col_index in all_target_col:
-                for row in table:
-                    if isinstance(row[col_index], list):
-                        continue
-                    cell_text, has_background = row[col_index]
-                    if gu_bun_text in cell_text:
-                        gu_bun_col = col_index
-                        break
-                if gu_bun_col != -1:
-                    break
-            
-            # Check if gu_bun_col was found in target columns
-            if gu_bun_col != -1:
-                return 'type2'
-
-        return 'type1'
-
-    def create_dictionary_for_type1(self, table, target_text):
-        """
-        Creates a dictionary for type1 table where keys are below '구분' and values are below target_text.
-        """
-        keys = []
-        values = []
-
-        # Find the column index for '구분' and 'target_text'
-        gu_bun_col = -1
-        target_col = -1
-
-        for col_index, cell in enumerate(table[0]):
-            if isinstance(cell, list):
-                continue
-            cell_text, has_background = cell
-            if cell_text.startswith('구분'):
-                gu_bun_col = col_index
-            if target_text in cell_text:
-                target_col = col_index
-
-        # Extract keys and values based on found column indices
-        if gu_bun_col != -1 and target_col != -1:
-            for row in table[1:]:
-                if len(row) > gu_bun_col:
-                    gu_bun_cell_text, _ = row[gu_bun_col]
-                    keys.append(self.remove_escape(gu_bun_cell_text))
-                if len(row) > target_col:
-                    target_cell_text, _ = row[target_col]
-                    values.append(self.remove_escape(target_cell_text))
-
-        return dict(zip(keys, values))
-
-    @staticmethod
-    def split_cell_text(cell_text):
-        """
-        Splits the cell text by newlines and returns a list of clean texts.
-        """
-        return [line for line in cell_text.split('\n') if line.strip()]
-
-    def create_dictionary_for_type2(self, table, target_text):
-        """
-        Creates a dictionary for type2 table where keys are in the '구분' row or column and values are in the target_text row or column.
-        """
-        dictionary = {}
-        gu_bun_text = '구분'
-        
-        all_target_col = []
-        target_col = -1
-        gu_bun_col = -1
-
-        # Find all target columns containing target_text
-        for col_index, cell in enumerate(table[0]):
-            if isinstance(cell, list):
-                continue
-            cell_text, has_background = cell
-            if target_text in cell_text:
-                all_target_col.append(col_index)
-
-        # Find the gu_bun column from the target columns
-        for col_index in all_target_col:
-            for row in table:
-                if isinstance(row[col_index], list):
-                    continue
-                cell_text, has_background = row[col_index]
-                if gu_bun_text in cell_text:
-                    gu_bun_col = col_index
-                    break
-            if gu_bun_col != -1:
-                break
-
-        # Ensure both target_col and gu_bun_col are found
-        if gu_bun_col != -1:
-            for row in table[1:]:
-                if len(row) > gu_bun_col:
-                    keys = self.split_cell_text(row[gu_bun_col][0])
-                    values = self.split_cell_text(row[gu_bun_col+1][0])  # Assuming values are in the next column of gu_bun_col
-                    for key, value in zip(keys, values):
-                        dictionary[key] = value
-
-        return dictionary
-
-    def extract_all_data(self):
-        """
-        Extracts all data for each target key and returns a dictionary with target keys as keys and their respective data as values.
-        """
-        tables_with_background = self.extract_tables_with_background()
-        results = {}
-        
-        for target_key in self.target_keys:
-            target_tables = self.find_target_in_tables(tables_with_background, target_key)
-            
-            for table_index, _, _, _ in target_tables:
-                table_type = self.find_table_type(tables_with_background, target_key)
-                if table_type == 'type1':
-                    results[target_key] = self.create_dictionary_for_type1(tables_with_background[table_index], target_key)
-                else:
-                    results[target_key] = self.create_dictionary_for_type2(tables_with_background[table_index], target_key)
-        
-        return results
 
     
 
@@ -540,6 +323,7 @@ class KeyValueExtractor:
         for table in self.doc.tables:
             ext = DocxTableExtractor(table)
             extracted_dict = ext.extracted_key_values #ext.extracted_ke_values는 키:밸류로 된 딕셔너리
+            
             table_res =self.find_res_from_extracted(extracted_dict, pos)
             res+= table_res
         return res
@@ -603,18 +387,6 @@ class KeyValueExtractor:
                                 # 대표 키와 값을 처리하고 데이터 리스트에 추가
         return table_data
 
-
-    def treat_extract_all_json(self):
-        ### 1) get_all_nested_table_data
-
-        ### 2) find if it's vertical table
-
-        ### 3) find 'target text' from col[0] or row[0]
-
-        ### 4) find table type by checking word '구분' : if it's in same column as target_text it's table type 2 and if it's in [0] column only it's table type 1
-
-
-        pass
 
     def find_value_match_first_row(self, first_row_cells, matching_row_cells, second_key_list):
         """
@@ -755,6 +527,7 @@ class KeyValueExtractor:
         ## ✯ MAIN FUNCTION ✯ 
         ##1) 먼저 테이블내 키밸류를 추출한다
         table_data = self.process_tables()  # 테이블 데이터 처리
+        self.process_table_pos() #밸류가 이미지나 표xml이면 바로 추출이 어려우니  위치값을 
 
         # 0번 셀을 기준으로 오른쪽 셀에 테이블이 있으면 그 안에서도 process_table을 실행
         table_data = self.process_target_key_inner_table(table_data)
@@ -763,8 +536,7 @@ class KeyValueExtractor:
         #3) 2차원리스트 일때 값을 찾는다. 2차원 리스트를 찾는 함수 (priority: 첫번째 키, second_key = 두번째 키) 
         second_key_data= self.treat_second_key()
         table_data = self.update_table_data(table_data, second_key_data)
-        ## 4) 모든 데이터 추출 extract_all_json 키 사용
-        vertical_data = self.treat_extract_all_json()
+
 
         ## 5) 테이블이 아닌 텍스트에서 NER로 키값 추출
         self.process_none_table_keys()  # 테이블이 아닌 키-값 쌍 처리
@@ -773,9 +545,6 @@ class KeyValueExtractor:
         return self.data  # 최종 데이터를 반환
     
     def add_not_extracted_column(self, table_data):
-        print('table_data###############')
-        print(table_data)
-        print('table_data###############')
         all_extracted_keys = [k for [k, v, pos] in table_data]
         for a in self.all_keys: 
             if a not in all_extracted_keys:
