@@ -27,6 +27,7 @@ RUN poetry config virtualenvs.create false
 RUN poetry install --no-interaction --no-ansi
 
 # Download spaCy models
+RUN pip install --no-cache-dir numpy==1.23.5 thinc==8.1.8
 RUN python -m spacy download en_core_web_sm
 RUN python -m spacy download ko_core_news_sm
 
