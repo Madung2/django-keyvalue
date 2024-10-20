@@ -8,6 +8,8 @@ from .key_mapping import KeyMap
 from ..serializers import RulesSerializer
 import re
 import io
+import os
+from django.conf import settings
 
 
 class DocxGenerator:
@@ -177,11 +179,28 @@ class DocxGenerator:
             for target in targets:
                 #2) get replacement text
                 replacement_text, highlight = self._get_replacement_text(target)
+                print('target:', target, 'replace:', replacement_text )
                 if replacement_text is None:
                     continue
 
                 if replacement_text.strip() == "" and para.text.replace('{{'+target+'}}', '').strip() == "":
-                    para.text = "[[remove]]"
+                    para.text = ""
+
+
+                # 3) Check if the replacement text is a media file path
+                if replacement_text.startswith('/media/'):
+                    # Convert to absolute file path
+                    image_path = os.path.join(settings.MEDIA_ROOT, replacement_text.replace('/media/', ''))
+                    
+                    # Check if the file exists
+                    if os.path.isfile(image_path):
+                        print('path is file', image_path)
+                        para.clear()  # Clear the paragraph text
+                        para.add_run().add_picture(image_path, width=Inches(5))  # Insert image with width of 2 inches
+                        break
+                    else:
+                        print(f"Image not found at: {image_path}")
+                        para.text = f"[Image not found: {replacement_text}]"                    
 
                 
                 if '</table>' in replacement_text: ## table이라면

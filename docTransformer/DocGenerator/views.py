@@ -15,6 +15,23 @@ from django.db import models
 
 
 # Static IM파일 기준:DB 변경되면 수정되야함
+# def get_data(doc_type):
+#     # IMExtraction 모델에서 가장 최근 레코드를 가져옵니다.
+#     latest_record = IMExtraction.objects.last()
+#     if not latest_record:
+#         return None  # 만약 레코드가 없다면 None을 반환
+
+#     data = {}
+#     for field in IMExtraction._meta.fields:
+#         # 이미지 필드는 제외
+#         if isinstance(field, models.ImageField):
+#             continue  # 이미지 필드를 건너뜁니다.
+
+#         field_name = field.name  # 필드 이름
+#         field_value = getattr(latest_record, field_name)  # 해당 레코드에서 필드 값 가져오기
+#         data[field_name] = field_value
+    
+#     return data
 def get_data(doc_type):
     # IMExtraction 모델에서 가장 최근 레코드를 가져옵니다.
     latest_record = IMExtraction.objects.last()
@@ -23,16 +40,19 @@ def get_data(doc_type):
 
     data = {}
     for field in IMExtraction._meta.fields:
-        # 이미지 필드는 제외
-        if isinstance(field, models.ImageField):
-            continue  # 이미지 필드를 건너뜁니다.
-
         field_name = field.name  # 필드 이름
         field_value = getattr(latest_record, field_name)  # 해당 레코드에서 필드 값 가져오기
+        
+        if isinstance(field, models.ImageField):
+            # For image fields, you can return the URL if available
+            if field_value:
+                field_value = field_value.url  # URL을 반환 (이미지의 경우)
+            else:
+                field_value = None  # 이미지가 없는 경우 None 처리
+
         data[field_name] = field_value
     
     return data
-
 #######################################################
 
 

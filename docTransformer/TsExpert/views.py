@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .services.extract import KeyValueExtractor
 from .services.nested_table import NestedTableExtractor
+from .services.image_and_table_ext import extract_images_from_tables
 from .services.post_process import post_process
 #from .services.convert_pdf import convert_doc_to_docx, convert_hwp_to_docx
 from .services.convert_pdf import convert_to_docx
@@ -116,25 +117,26 @@ def run_data_extract2(file, doc_type_id, key_value):
 
     doc = Document(file)
     ext = KeyValueExtractor(doc, key_value)
-    data = ext.extract_data()
+    text_data, image_data = ext.extract_data()
 
     nest = NestedTableExtractor(doc, key_value)
     nest_data = nest.extract_all_data()
 
-    # print('first_data:', data)
-    # data = ext.remove_duplication(data)
-    final_data = post_process(data, key_value)
+
+    final_data = post_process(text_data, key_value)
     #### type1)
     for k, v in nest_data.items():
         v_as_str = json.dumps(v, ensure_ascii=False)  # v를 JSON 문자열로 변환
         new_d = [k, v, k , 0]
         final_data.append(new_d)
 
+    image_info = extract_images_from_tables(doc, image_data)
+
 
     print('final_Dtaa:', final_data)
-    return final_data
+    return final_data, image_info
 
-def save_in_db(data, key_value):
+def save_in_db(data, image_data, key_value):
     """data 는 [[k,v,k pos], ...]
 
     Args:
@@ -159,6 +161,15 @@ def save_in_db(data, key_value):
                 # 매칭되는 필드에 값을 할당
                 setattr(im_extraction_instance, field.name, v)
                 break  # 매칭되면 더 이상 필드를 찾을 필요 없음
+
+    # Save image data
+    for img_key, img in image_data:
+        for field in fields:
+            if hasattr(field, 'verbose_name') and field.verbose_name == img_key:
+                # Assuming the field is an ImageField
+                field_name = field.name
+                setattr(im_extraction_instance, field_name, img)  # Set the image
+                break
 
     # 인스턴스 저장
     im_extraction_instance.save()
@@ -194,8 +205,8 @@ def process_file(request):
 
     content = file.read()
     key_value = get_meta_data(doc_type_id)
-    result = run_data_extract2(io.BytesIO(content), doc_type_id, key_value)
-    save_in_db(result, key_value)
+    result, image_data = run_data_extract2(io.BytesIO(content), doc_type_id, key_value)
+    save_in_db(result, image_data,  key_value)
     
     return result, {"file_url": file_url}, None
 

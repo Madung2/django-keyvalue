@@ -24,7 +24,6 @@ class DocxTableExtractor():
         self.table_type_num = self.detector.type_num
         self.table_data = self.detector.table_extract
         self.extracted_key_values = {} # {k,v}
-        self.extracted_key_positions ={} #{k, pos}
         self.extract_data()
         
     
@@ -35,7 +34,7 @@ class DocxTableExtractor():
         """
         print('extracted from horizontal table')
         result = {}
-        result2 ={}
+        
         for row_idx, row in enumerate(self.table_data):
             if 'bg'in row[0] and row[0]['bg']!=False:
                 # 첫번째 열의 배경색이 있으면 키로 설정
@@ -50,8 +49,8 @@ class DocxTableExtractor():
                     else:
                         # 배경색이 없는 첫번째 데이터를 값으로 설정
                         value =row[i]['txt']
-                        result[key] = value
-                        result2[key] = (row_idx,i)
+                        print('111', key, row_idx)
+                        result[key] = [value, (row_idx,i)]
                         break
             else:
                 # 예외적으로 한 줄에 배경색이 없는데 horizontal_table로 분류된 케이스가 있음.
@@ -69,14 +68,10 @@ class DocxTableExtractor():
                         value =''
                         value_position = None
 
-                    result[key] = value
-                    
-                    if value_position is not None:
-                        result2[key] = (row_idx, value_position)
+                    result[key] = [value, (row_idx, value_position)]
                 
                 
         self.extracted_key_values = result
-        self.extracted_key_positions =result2
 
     def _extract_vertical_table(self):
         """세로 테이블 추출
@@ -86,7 +81,6 @@ class DocxTableExtractor():
         """
         print('extracted from verticle table')
         result = {}
-        result2 ={}
         col_count = len(self.table_data[0])
         for col_idx in range(col_count):
             key= None
@@ -106,10 +100,8 @@ class DocxTableExtractor():
                     break
             # 키와 값이 모두 설정된 경우 결과에 추가
             if key and value:
-                result[key] = value
-                result2[key] = (value_position, col_idx)
+                result[key] = [value, (value_position, col_idx)]
         self.extracted_key_values = result
-        self.extracted_key_positions = result2
     
     def _extract_horizontal_plural_table(self):
         """가로 복수 테이블 추출
@@ -118,7 +110,6 @@ class DocxTableExtractor():
         """
         print('extracted from horizontal plural table')
         result = {}
-        result2 ={}
 
         for row_idx, row in enumerate(self.table_data):
             #row_result ={}
@@ -133,8 +124,9 @@ class DocxTableExtractor():
                     # 그 다음셀의 배경색이 없으면 값을 설정
                     if col_idx +1 < len(row) and 'bg' in row[col_idx+1] and row[col_idx+1]['bg']==False:
                         value = row[col_idx+1]['txt']
-                        result[key] = value
-                        result2[key] = (row_idx, col_idx+1)
+                        print('333', key, value, row_idx)
+                        
+                        result[key] = [value, (row_idx, col_idx+1)]
                         
                 # 이번 값 처리 완료 다음 줄 넘어감
                 col_idx += 1
@@ -143,7 +135,6 @@ class DocxTableExtractor():
             #    result.add(row_result)
 
         self.extracted_key_values = result
-        self.extracted_key_positions = result2
     
     def extract_data(self):
 
@@ -172,8 +163,10 @@ class KeyValueExtractor:
         self.data_keys = set()  # 발견된 고유 키를 저장할 집합
         self.rep_keys = set()  # 발견된 대표 키를 저장할 집합
         self.key_value = [k_v for k_v in key_value if not k_v['extract_all_json']] # [{"key": "차주사", "value_type": "text", "type": "string", "is_table": false, "extract_all_json": false, "synonym": {"priority": ["차주(시행사)"], "all": ["차주(시행사)"], "pattern": []}, "second_key": [], "specific": false, "sp_word": null, "value": [], "split": []}]
+        self.image_key_value = [k_v for k_v in key_value if 'value_type' in k_v.keys() and k_v['value_type']== 'image']
         self.all_keys = [ele["key"] for ele in self.key_value] # ["차주사", "신탁사"]
         self.all_syn = [syn for item in self.key_value if item["synonym"] for syn in item["synonym"]["all"]]
+        self.all_image_syns = [syn for item in self.image_key_value if item["synonym"] for syn in item["synonym"]["all"]]
         self.all_priority_syn = [syn for item in self.key_value if item["synonym"] for syn in item["synonym"]["priority"]]
         self.all_target_keys = {}
         for ele in self.key_value:
@@ -292,7 +285,7 @@ class KeyValueExtractor:
                 return Table(element, cell._parent._parent)
         return None
     
-    def find_res_from_extracted(self,extracted_dict, pos):
+    def find_res_from_extracted(self,extracted_dict, table_idx):
         """
         주어진 extracted_dict에서 키를 우선순위 리스트와 비교해 대표 키를 찾고,
         해당 키와 값을 리스트에 추가하는 함수.
@@ -307,26 +300,39 @@ class KeyValueExtractor:
             list: [[대표 키, 값, 위치], [대표 키, 값, 위치], ...] 형식의 리스트
         """
         res = []
+        image_res = [] 
         for k, v in extracted_dict.items():
-            if k in self.all_syn:
+            if k in self.all_syn: # 일반 텍스트 키밸류
                 t_k = self.all_target_keys[k]
-                res.append([t_k, v, pos])
-        return res
+                extracted_value = v[0]
+                row_pos = v[1][0]
+                col_pos = v[1][1]
+
+                res.append([t_k, extracted_value, (table_idx, row_pos, col_pos)])
+        
+        
+        #self.image_key_value = [k_v for k_v in key_value if 'value_type' in k_v.keys() and k_v['value_type']== 'image']
+            if k in self.all_image_syns:# key in self.image_key_value
+                t_k = self.all_target_keys[k]
+                image_res.append([t_k, "이미지", (table_idx, row_pos, col_pos)])
+        return res, image_res
 
   
     def process_tables(self):
-        """각 테이블 별로 돌면서 해당 키가 타겟에 있으면 키는 대표키 밸류는 그대로를 뽑는다.
+        """각 테이블 별로 돌면서 해당 키가 타겟에 있으면 키는 대표키 밸류는 그대로를 뽑는다. # 이미지랑 테이블 다 뽑음.
          returns:: [[k,v,pos], [k,v,pos]]
         """
         res = []
-        pos = 0
-        for table in self.doc.tables:
+        image_res = []
+        
+        for table_idx, table in enumerate(self.doc.tables):
             ext = DocxTableExtractor(table)
             extracted_dict = ext.extracted_key_values #ext.extracted_ke_values는 키:밸류로 된 딕셔너리
-            
-            table_res =self.find_res_from_extracted(extracted_dict, pos)
-            res+= table_res
-        return res
+            text_data, image_data=self.find_res_from_extracted(extracted_dict, table_idx)
+            res+= text_data
+            image_res += image_data
+
+        return res, image_res
     
 
 
@@ -522,12 +528,12 @@ class KeyValueExtractor:
         """
         문서에서 데이터를 추출합니다.
         
-        :return: 추출된 모든 데이터의 리스트.[['차주사', '더블에스와이제일차', 0], ... ]
+        :return: 추출된 모든 데이터의 리스트.[['차주사', '더블에스와이제일차', (table_pos, row_pos, col_pos)], ... ]
         """
         ## ✯ MAIN FUNCTION ✯ 
         ##1) 먼저 테이블내 키밸류를 추출한다
-        table_data = self.process_tables()  # 테이블 데이터 처리
-        self.process_table_pos() #밸류가 이미지나 표xml이면 바로 추출이 어려우니  위치값을 
+        table_data, image_data = self.process_tables()  # 테이블 데이터 처리
+        # self.process_table_pos() #밸류가 이미지나 표xml이면 바로 추출이 어려우니  위치값을 
 
         # 0번 셀을 기준으로 오른쪽 셀에 테이블이 있으면 그 안에서도 process_table을 실행
         table_data = self.process_target_key_inner_table(table_data)
@@ -542,9 +548,11 @@ class KeyValueExtractor:
         self.process_none_table_keys()  # 테이블이 아닌 키-값 쌍 처리
         self.data += table_data  # 추출된 테이블 데이터를 데이터 리스트에 추가
         print('extract_data!!!!!!', self.data)
-        return self.data  # 최종 데이터를 반환
+        return self.data, image_data # 최종 데이터를 반환
     
     def add_not_extracted_column(self, table_data):
+        print('table_data', table_data)
+        table_data = [ele for ele in table_data if len(ele)==3 ] 
         all_extracted_keys = [k for [k, v, pos] in table_data]
         for a in self.all_keys: 
             if a not in all_extracted_keys:
