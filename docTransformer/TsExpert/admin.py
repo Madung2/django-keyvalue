@@ -112,7 +112,8 @@ class IMExtractionAdmin(admin.ModelAdmin):
 
     def download_docx(self, request, object_id):
         # 여기서 API를 호출하여 DOCX 파일을 다운로드하고 반환
-        api_url = "http://127.0.0.1:8000/dg/run_generator/"
+        
+        api_url = f"http://{request.get_host()}/dg/run_generator/"
         response = requests.post(api_url)  # API 호출
         
         if response.status_code == 200:
