@@ -231,12 +231,15 @@ def extract_key_value(request):
     if error:
         return Response(file_url_response, status=error)
 
-    response_data = {
-        "data": result,
-        "file_url": file_url_response.get('file_url')
-    }
-    return JsonResponse(response_data, safe=False)
-
+    # response_data = {
+    #     "data": result,
+    #     "file_url": file_url_response.get('file_url')
+    # }
+    # return JsonResponse(response_data, safe=False)
+    response_data = []
+    for k, v, ele3, ele4 in result:
+        response_data.append({"group":k, "final_output":v})
+    return JsonResponse(response_data, safe=True)
 
 @csrf_exempt
 @api_view(['POST'])
@@ -244,11 +247,21 @@ def extract_key_value(request):
 def extract_term_sheet(request):
     """API endpoint for extracting term sheet data."""
     result, file_url_response, error = process_file(request)
+    print(result)
     if error:
         return Response(file_url_response, status=error)
     
+    # #### HANA ###
     response_data = {}
     for title, ele1, ele2, ele3 in result:
-        response_data[title] = ele1
-    
+        if type(title)==str and type(ele1) == str:
+            response_data[title] = ele1
     return JsonResponse([response_data], safe=False)
+
+    #### NICE ####
+    response_data = []
+    for key, value, ele2, ele3 in result:
+        ele = {"group": key, "serial_number": 0, "mandatory_field": "", "final_output": value}
+        response_data.append(ele)
+    return JsonResponse(response_data, safe=False)
+    

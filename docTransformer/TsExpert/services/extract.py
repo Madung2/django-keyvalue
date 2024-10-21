@@ -175,7 +175,7 @@ class KeyValueExtractor:
                     self.all_target_keys[syn] = ele['key']
                 
         self.NoneTables = [item for item in self.key_value if item["is_table"] == False ]
-        self.THRESHOLD = env.int('TSEXPERT_THRSHOLD')
+        self.THRESHOLD = env.int('TSEXPERT_THRESHOLD',80)
     
     def filter_function(self, key):
         key = key.strip()
