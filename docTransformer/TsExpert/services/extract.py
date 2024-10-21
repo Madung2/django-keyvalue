@@ -49,7 +49,7 @@ class DocxTableExtractor():
                     else:
                         # 배경색이 없는 첫번째 데이터를 값으로 설정
                         value =row[i]['txt']
-                        print('111', key, row_idx)
+                        # print('111', key, row_idx)
                         result[key] = [value, (row_idx,i)]
                         break
             else:
@@ -124,7 +124,7 @@ class DocxTableExtractor():
                     # 그 다음셀의 배경색이 없으면 값을 설정
                     if col_idx +1 < len(row) and 'bg' in row[col_idx+1] and row[col_idx+1]['bg']==False:
                         value = row[col_idx+1]['txt']
-                        print('333', key, value, row_idx)
+                        # print('333', key, value, row_idx)
                         
                         result[key] = [value, (row_idx, col_idx+1)]
                         
@@ -291,7 +291,7 @@ class KeyValueExtractor:
         해당 키와 값을 리스트에 추가하는 함수.
         
         Args:
-            extracted_dict (dict): 추출된 키-값 딕셔너리
+            extracted_dict (dict): 추출된 키-값 딕셔너리 {k:[v, ()]}
             all_syn (set): 우선순위 키들이 포함된 집합
             all_target_keys (dict): 우선순위 키에 해당하는 대표 키 딕셔너리
             pos (int): 현재 위치 값
@@ -308,6 +308,7 @@ class KeyValueExtractor:
                 row_pos = v[1][0]
                 col_pos = v[1][1]
 
+
                 res.append([t_k, extracted_value, (table_idx, row_pos, col_pos)])
         
         
@@ -315,6 +316,7 @@ class KeyValueExtractor:
             if k in self.all_image_syns:# key in self.image_key_value
                 t_k = self.all_target_keys[k]
                 image_res.append([t_k, "이미지", (table_idx, row_pos, col_pos)])
+        
         return res, image_res
 
   
@@ -340,7 +342,8 @@ class KeyValueExtractor:
         """0번 셀에 타겟 텍스트가 있으면 그걸 기준으로 오른쪽에 테이블이 있는지 확인하고, 있으면 처리합니다."""
         target_text = ['채권보전']  # 타겟 키워드 목록
         pos=0
-        for table in self.doc.tables:
+        
+        for table_idx, table in enumerate(self.doc.tables):
             for row in table.rows:
                 # 첫 번째 셀에 타겟 텍스트가 있는지 확인
                 if any(text in row.cells[0].text for text in target_text):
@@ -354,9 +357,9 @@ class KeyValueExtractor:
                             nested_table = Table(ele, self.doc)  # XML 요소를 Table 객체로 변환
                             ext = DocxTableExtractor(nested_table)  # DocxTableExtractor로 추출
                             extracted_dict = ext.extracted_key_values  # 추출된 딕셔너리 반환
-                            print('extracted', extracted_dict)  # 디버그용 출력 (필요 시 변경)
+                            # print('extracted', extracted_dict)  # 디버그용 출력 (필요 시 변경){k, [v, (row_idx,col_idx)]}
                             has_nested_table = True
-                            inner_table_res = self.find_res_from_extracted(extracted_dict, pos)
+                            inner_table_res, image_res = self.find_res_from_extracted(extracted_dict, table_idx)
                             res+= inner_table_res
                             break
 
@@ -492,7 +495,7 @@ class KeyValueExtractor:
                         result.append([element['key'], cleaned_found_text, 0])
 
 
-        print('')
+        # print('')
         return result
 
     def treat_second_key(self):
@@ -504,9 +507,9 @@ class KeyValueExtractor:
                 has_secondkey_dict_elements.append(ele)
 
 
-        print('%%%%%%%%%%%%%%%%%%')
-        print(has_secondkey_dict_elements)
-        print('%%%%%%%%%%%%%%%%%%')
+        # print('%%%%%%%%%%%%%%%%%%')
+        # print(has_secondkey_dict_elements)
+        # print('%%%%%%%%%%%%%%%%%%')
 
         return self.find_matching_rows(has_secondkey_dict_elements)
 
@@ -551,7 +554,7 @@ class KeyValueExtractor:
         return self.data, image_data # 최종 데이터를 반환
     
     def add_not_extracted_column(self, table_data):
-        print('table_data', table_data)
+        # print('table_data', table_data)
         table_data = [ele for ele in table_data if len(ele)==3 ] 
         all_extracted_keys = [k for [k, v, pos] in table_data]
         for a in self.all_keys: 
