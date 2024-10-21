@@ -74,6 +74,9 @@ class IMExtraction(models.Model):
     interest_payment_method = models.CharField('이자지급방법', max_length=255, null=True, blank=True)
     early_repay_fee = models.CharField('조기상환수수료', max_length=255, null=True, blank=True)
     finance_diagram = models.ImageField(upload_to='images/finance_diagram', null=True, blank=True, verbose_name="금융구조도")
+    procure_amount = models.TextField('조달금액', null=True, blank=True)
+    fund_execution = models.TextField('자금조달및집행', null=True, blank=True)
+    dev_plan = models.TextField('사업부지개발계획', null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="생성일자")
     edited_at = models.DateTimeField(auto_now=True, verbose_name="수정일자")

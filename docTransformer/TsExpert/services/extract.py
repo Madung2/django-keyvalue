@@ -340,7 +340,7 @@ class KeyValueExtractor:
 
     def process_target_key_inner_table(self, res):
         """0번 셀에 타겟 텍스트가 있으면 그걸 기준으로 오른쪽에 테이블이 있는지 확인하고, 있으면 처리합니다."""
-        target_text = ['채권보전']  # 타겟 키워드 목록
+        target_text = ['대출 세부조건ㅌㅌㅌㅊ']  # 타겟 키워드 목록
         pos=0
         
         for table_idx, table in enumerate(self.doc.tables):

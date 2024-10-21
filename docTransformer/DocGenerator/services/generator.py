@@ -2,6 +2,10 @@ from html.parser import HTMLParser
 from docx import Document
 from docx.shared import Pt, Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH,WD_COLOR_INDEX, WD_COLOR
+from docx.oxml import OxmlElement
+from docx.oxml.ns import nsdecls
+from docx.oxml import parse_xml
+
 from docx.shared import RGBColor
 from ..models import Template, Rules
 from .key_mapping import KeyMap
@@ -164,9 +168,14 @@ class DocxGenerator:
 
 
     def create_document(self):
+        """create document 는 xml을 
+
+        Raises:
+            ValueError: _description_
+        """
 
         # 1. generating documentlter(
-        latest_template = Template.objects.all().first()
+        latest_template = Template.objects.all().last()
         if latest_template:
             content = latest_template.content
         else:
@@ -179,14 +188,12 @@ class DocxGenerator:
             for target in targets:
                 #2) get replacement text
                 replacement_text, highlight = self._get_replacement_text(target)
-                print('target:', target, 'replace:', replacement_text )
+                # print('target:', target, 'replace:', replacement_text )
                 if replacement_text is None:
                     continue
 
                 if replacement_text.strip() == "" and para.text.replace('{{'+target+'}}', '').strip() == "":
-                    para.text = ""
-
-
+                    para.text = "[[remove]]"
                 # 3) Check if the replacement text is a media file path
                 if replacement_text.startswith('/media/'):
                     # Convert to absolute file path
@@ -201,7 +208,11 @@ class DocxGenerator:
                     else:
                         print(f"Image not found at: {image_path}")
                         para.text = f"[Image not found: {replacement_text}]"                    
-
+                elif replacement_text.startswith('<w:'):
+                    break
+                    # para.clear()
+                    # xml_element = parse_xml(replacement_text)
+                    # para._element.append(xml_element)
                 
                 if '</table>' in replacement_text: ## table이라면
                     pass
@@ -249,6 +260,7 @@ class DocxGenerator:
         #########################post process start############################################
 
         # [[remove]] 제거 필수로 필요
+
         
         
         # 2. Making File itself

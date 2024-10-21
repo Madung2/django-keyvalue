@@ -109,3 +109,79 @@ def extract_images_from_tables(doc, image_data):
             print(f"Table index {table_idx}, row {row_idx}, or col {col_idx} is out of bounds")
 
     return image_info
+
+
+
+
+
+
+
+
+
+import zipfile
+from lxml import etree
+def extract_table_under_target(docx_path, target_text):
+    # 타겟 텍스트 아래에 있는 첫번째 테이블을 xml 스트링으로 리턴
+    # DOCX 파일을 ZIP 형식으로 열기
+    with zipfile.ZipFile(docx_path, 'r') as docx_zip:
+        # 'word/document.xml'에서 XML 데이터를 읽기
+        with docx_zip.open('word/document.xml') as doc_xml:
+            xml_content = doc_xml.read()
+
+    # XML 파싱
+    xml_tree = etree.fromstring(xml_content)
+
+    # 네임스페이스 설정
+    namespaces = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
+
+    # '사업개요' 텍스트를 포함한 단락 찾기 (w:p 태그 안에 w:t로 텍스트 존재)
+    paragraphs = xml_tree.findall('.//w:p', namespaces)
+    found_target = False
+
+    for paragraph in paragraphs:
+        # 모든 w:t 텍스트 노드의 값을 결합해 단락의 텍스트 생성
+        text = ''.join(paragraph.xpath('.//w:t/text()', namespaces=namespaces))
+
+        # 타깃 텍스트를 찾으면 플래그를 True로 설정
+        if target_text in text:
+            found_target = True
+            print('found_TARGET!!!=>',text)
+            continue  # 타깃 텍스트 다음 단락부터 테이블을 찾음
+
+        # 타깃 텍스트 이후 첫 번째 테이블을 찾기
+        if found_target:
+            # w:tbl 태그를 찾음
+            table = paragraph.xpath('.//following-sibling::w:tbl', namespaces=namespaces)
+            if table:
+                # 첫 번째 테이블의 XML 데이터를 반환
+                return etree.tostring(table[0], pretty_print=True).decode('utf-8')
+    return None
+    raise Exception("타깃 텍스트 이후 테이블을 찾을 수 없습니다.")
+
+
+def extract_table_from_raw_paragraphs(docx_path, key_value):
+    """iterate each key_value item which "value_type": "xml" and get_all_targettext and 
+    if target_text found, do "extract_table_under_target"
+
+    Args:
+        docx_path (str): path of original document
+        key_value (_type_): _description_
+
+    Returns:
+        [[k, table_xml]]: 리스트 오브 리스트 
+    """
+    
+    table_xml_res = []
+    # 1) get target key_value
+    xml_kv = [k_v for k_v in key_value if 'value_type' in k_v.keys() and k_v['value_type']== 'xml']
+
+    # 2) iterate
+    for kv in xml_kv:
+        xml = ''
+        all_syns = kv['synonym']['all']
+        for syn in all_syns:
+            xml = extract_table_under_target(docx_path, syn)
+            if xml is not None:
+                break
+        table_xml_res.append([kv['key'], xml])
+    return table_xml_res

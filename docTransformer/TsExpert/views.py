@@ -13,7 +13,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .services.extract import KeyValueExtractor
 from .services.nested_table import NestedTableExtractor
-from .services.image_and_table_ext import extract_images_from_tables
+from .services.image_and_table_ext import extract_images_from_tables, extract_table_from_raw_paragraphs
 from .services.post_process import post_process
 #from .services.convert_pdf import convert_doc_to_docx, convert_hwp_to_docx
 from .services.convert_pdf import convert_to_docx
@@ -91,7 +91,7 @@ default_key_value = [
     {"key": "출자자명", "type": "string", "is_table": True, "synonym": {"priority": ["GP", "집합투자업자"], "all": ["GP", "집합투자업자"], "pattern": []}, "specific": False, "sp_word": None, "split": []}, 
     {"key": "존속기간", "type": "year", "is_table": True, "synonym": {"priority": ["존속기간", "펀드기간", "펀드존속기간"], "all": ["존속기간", "펀드기간", "펀드존속기간", "펀드만기"], "pattern": []}, "specific": False, "sp_word": None, "split": []}, 
     {"key": "출자약정금액", "type": "money", "is_table": True, "synonym": {"priority": ["GP 출자금", "최소결성금액", "펀드규모"], "all": ["펀드약정총액", "GP출자금", "현재 약정금액", "펀드규모", "목표모집금액", "최소결성금액", "결성금액"], "pattern": []}, "specific": False, "sp_word": None, "split": []}, 
-    {"key": "약정금액", "type": "money", "is_table": True, "synonym": {"priority": ["LP", "당사 출자금액"], "all": ["LP", "당사 출자금액", "당사참여규모", "당사 신청금액", "당사 출자 요청액"], "pattern": []}, "specific": True, "sp_word": "당사", "split": []}, 
+    {"key": "약정금액", "type": "money", "is_tab le": True, "synonym": {"priority": ["LP", "당사 출자금액"], "all": ["LP", "당사 출자금액", "당사참여규모", "당사 신청금액", "당사 출자 요청액"], "pattern": []}, "specific": True, "sp_word": "당사", "split": []}, 
     {"key": "승인신청금액", "type": "money", "is_table": True, "synonym": {"priority": ["신청금액"], "all": ["신청금액"], "pattern": []}, "specific": False, "sp_word": None, "split": []}, 
     {"key": "출자가능기간", "type": "year", "is_table": True, "synonym": {"priority": ["투자기간", "펀드투자기간"], "all": ["투자기간", "펀드투자기간"], "pattern": []}, "specific": False, "sp_word": None, "split": []}, 
     {"key": "기준수익률", "type": "percentage", "is_table": True, "synonym": {"priority": ["기준수익률"], "all": ["기준수익률", "성과보수율", "성과보수", "성공보수"], "pattern": []}, "specific": False, "sp_word": ["IRR", "기준수익률"], "split": ["초과", "상회"]}, 
@@ -132,11 +132,14 @@ def run_data_extract2(file, doc_type_id, key_value):
 
     image_info = extract_images_from_tables(doc, image_data)
 
+    xml_info =extract_table_from_raw_paragraphs(file, key_value)#'사업개요')
+
 
     print('final_Dtaa:', final_data)
-    return final_data, image_info
+    print('table_xml:', xml_info[0])
+    return final_data, image_info,xml_info
 
-def save_in_db(data, image_data, key_value):
+def save_in_db(data, image_data, xml_data, key_value):
     """data 는 [[k,v,k pos], ...]
 
     Args:
@@ -169,6 +172,12 @@ def save_in_db(data, image_data, key_value):
                 # Assuming the field is an ImageField
                 field_name = field.name
                 setattr(im_extraction_instance, field_name, img)  # Set the image
+                break
+
+    for xml_key, xml in xml_data:
+        for field in fields:
+            if hasattr(field, 'verbose_name') and field.verbose_name == xml_key:
+                setattr(im_extraction_instance, field.name, xml)
                 break
 
     # 인스턴스 저장
@@ -205,8 +214,8 @@ def process_file(request):
 
     content = file.read()
     key_value = get_meta_data(doc_type_id)
-    result, image_data = run_data_extract2(io.BytesIO(content), doc_type_id, key_value)
-    save_in_db(result, image_data,  key_value)
+    result, image_data, xml_data = run_data_extract2(io.BytesIO(content), doc_type_id, key_value)
+    save_in_db(result, image_data, xml_data,  key_value)
     
     return result, {"file_url": file_url}, None
 
