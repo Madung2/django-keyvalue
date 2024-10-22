@@ -64,7 +64,7 @@ class IMExtraction(models.Model):
     id = models.AutoField(primary_key=True)
 
     borrower = models.CharField('차주사', max_length=255, null=True, blank=True)
-    trustee = models.CharField('시탁사', max_length=255, null=True, blank=True)
+    trustee = models.CharField('신탁사', max_length=255, null=True, blank=True)
     repay_method = models.CharField('상환방법', max_length=255, null=True, blank=True)
     overdue_interest = models.CharField('연체가산금리', max_length=255, null=True, blank=True)
     loan_amount = models.CharField('대출금액', max_length=255, null=True, blank=True)

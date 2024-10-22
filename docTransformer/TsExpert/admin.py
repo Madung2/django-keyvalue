@@ -90,7 +90,9 @@ from django.utils.html import format_html
 from django.urls import path, reverse
 from django.http import HttpResponse, HttpResponseRedirect
 import requests
-
+import tempfile
+import subprocess
+import os
 class IMExtractionAdmin(admin.ModelAdmin):
     list_display = ('id', 'borrower', 'trustee', 'loan_amount', 'loan_period', 'created_at', 'download_button')
     list_display_links = ('borrower', 'trustee', 'loan_amount', 'loan_period')
@@ -110,22 +112,76 @@ class IMExtractionAdmin(admin.ModelAdmin):
         ]
         return custom_urls + urls
 
+    # def download_docx(self, request, object_id):
+    #     # 여기서 API를 호출하여 DOCX 파일을 다운로드하고 반환
+        
+    #     api_url = f"http://{request.get_host()}/dg/run_generator/"
+    #     response = requests.post(api_url)  # API 호출
+        
+    #     if response.status_code == 200:
+    #         # 받은 파일을 HttpResponse로 전달
+    #         docx_file = response.content
+    #         response = HttpResponse(docx_file, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    #         response['Content-Disposition'] = f'attachment; filename="generated_file_{object_id}.docx"'
+    #         return response
+    #     else:
+    #         self.message_user(request, "파일 다운로드 실패", level='error')
+    #         return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+
+
+# from django.http import HttpResponse, HttpResponseRedirect
+# from django.urls import reverse
+# from django.utils.html import format_html
+# from django.urls import path
+# import requests
+# import os
+
+# class IMExtractionAdmin(admin.ModelAdmin):
+#     list_display = ('id', 'borrower', 'trustee', 'loan_amount', 'loan_period', 'created_at', 'download_button')
+#     list_display_links = ('borrower', 'trustee', 'loan_amount', 'loan_period')
+
+#     def download_button(self, obj):
+#         return format_html(
+#             '<a class="button" href="{}">파일 다운로드</a>',
+#             reverse('admin:download_docx', args=[obj.id])
+#         )
+#     download_button.short_description = 'Download Button'
+
+#     def get_urls(self):
+#         urls = super().get_urls()
+#         custom_urls = [
+#             path('download/<int:object_id>/', self.admin_site.admin_view(self.download_docx), name='download_docx'),
+#         ]
+#         return custom_urls + urls
+
     def download_docx(self, request, object_id):
-        # 여기서 API를 호출하여 DOCX 파일을 다운로드하고 반환
-        
+        # API 호출
         api_url = f"http://{request.get_host()}/dg/run_generator/"
-        response = requests.post(api_url)  # API 호출
-        
+        response = requests.post(api_url)
+
         if response.status_code == 200:
-            # 받은 파일을 HttpResponse로 전달
-            docx_file = response.content
-            response = HttpResponse(docx_file, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-            response['Content-Disposition'] = f'attachment; filename="generated_file_{object_id}.docx"'
+            # 받은 DOCX 파일을 임시 파일로 저장
+            with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp_docx:
+                tmp_docx.write(response.content)
+                tmp_docx.flush()
+
+                # unoconv를 사용하여 LibreOffice로 DOCX 파일을 변환
+                converted_file_path = tempfile.mktemp(suffix=".docx")
+                subprocess.run(['/usr/local/bin/unoconv', '-f', 'docx', '-o', converted_file_path, tmp_docx.name], check=True)
+                print('subprocess 작동 성공!!')
+                # 변환된 파일을 읽어서 반환
+                with open(converted_file_path, 'rb') as converted_file:
+                    response = HttpResponse(converted_file.read(), content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+                    response['Content-Disposition'] = f'attachment; filename="generated_file_{object_id}.docx"'
+
+                # 임시 파일 삭제
+                os.remove(tmp_docx.name)
+                os.remove(converted_file_path)
+
             return response
         else:
             self.message_user(request, "파일 다운로드 실패", level='error')
             return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-
 
 admin.site.register(ExtractDictionary, ExtractDictionaryAdmin)
 admin.site.register(DocumentType, DocumentTypeAdmin)

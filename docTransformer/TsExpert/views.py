@@ -239,7 +239,7 @@ def extract_key_value(request):
     response_data = []
     for k, v, ele3, ele4 in result:
         response_data.append({"group":k, "final_output":v})
-    return JsonResponse(response_data, safe=True)
+    return JsonResponse(response_data, safe=False)
 
 @csrf_exempt
 @api_view(['POST'])

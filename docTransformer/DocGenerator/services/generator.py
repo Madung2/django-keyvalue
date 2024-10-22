@@ -203,7 +203,7 @@ class DocxGenerator:
                     if os.path.isfile(image_path):
                         print('path is file', image_path)
                         para.clear()  # Clear the paragraph text
-                        para.add_run().add_picture(image_path, width=Inches(5))  # Insert image with width of 2 inches
+                        para.add_run().add_picture(image_path, width=Inches(7))  # Insert image with width of 2 inches
                         break
                     else:
                         print(f"Image not found at: {image_path}")

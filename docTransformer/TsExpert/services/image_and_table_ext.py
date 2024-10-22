@@ -144,6 +144,8 @@ def extract_table_under_target(docx_path, target_text):
 
         # 타깃 텍스트를 찾으면 플래그를 True로 설정
         if target_text in text:
+            print('target_text:', target_text)
+            print('text:')
             found_target = True
             print('found_TARGET!!!=>',text)
             continue  # 타깃 텍스트 다음 단락부터 테이블을 찾음
