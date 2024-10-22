@@ -2,42 +2,7 @@ import shutil
 import zipfile
 from lxml import etree
 
-# 개별 placeholder에 table_xml을 삽입하는 함수
-def insert_table_into_placeholder(xml_tree, table_xml, placeholder):
-    body = xml_tree.find('.//w:body', namespaces={'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'})
-
-    # 문서에서 모든 텍스트 요소를 순회하면서 placeholder를 찾기
-    for paragraph in body.iterfind('.//w:p', namespaces={'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}):
-        texts = paragraph.findall('.//w:t', namespaces={'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'})
-        for text_elem in texts:
-            if placeholder in text_elem.text:
-                # placeholder가 있는 경우 테이블 삽입
-                parent = paragraph.getparent()
-                table_elem = etree.fromstring(table_xml)
-
-                # placeholder가 있는 문단을 테이블로 교체
-                parent.replace(paragraph, table_elem)
-                return xml_tree  # 수정된 트리 반환
-
-    return xml_tree  # 수정이 없을 경우 그대로 반환
-
-
-# def insert_table_into_body(body, table_xml):
-#     # 테이블 XML을 etree 객체로 변환
-#     new_table = etree.fromstring(table_xml)
-
-#     # 테이블을 body에 추가
-#     body.append(new_table)
-
-#         # 빈 단락을 추가하여 줄 바꿈
-#     new_paragraph = etree.Element('w:p')  # 빈 단락을 나타내는 XML 요소
-#     body.append(new_paragraph)
-
-#     # 수정된 트리 반환 (body는 이미 수정됨)
-#     return body
-
-##########################################잘 작동하는 코드##########################################3
-def insert_table_into_body(body, table_xml):
+def insert_table_after_paragraph(body, table_xml, paragraph):
     # 네임스페이스 선언
     namespace = {
         'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
@@ -46,18 +11,23 @@ def insert_table_into_body(body, table_xml):
     # 테이블 XML을 etree 객체로 변환
     new_table = etree.fromstring(table_xml)
 
-    # 테이블을 body에 추가
-    body.append(new_table)
+    # 테이블을 특정 단락 뒤에 추가
+    index = body.index(paragraph)  # 삽입할 단락 위치
+    body.insert(index + 1, new_table)  # 테이블 삽입
 
     # 빈 단락을 추가하여 줄 바꿈 (네임스페이스 포함)
     new_paragraph = etree.Element(f"{{{namespace['w']}}}p")  # 빈 단락을 나타내는 XML 요소
-    body.append(new_paragraph)
+    body.insert(index + 2, new_paragraph)  # 빈 단락 추가
 
-    # 수정된 트리 반환 (body는 이미 수정됨)
-    return body
-
-# 여러 placeholder와 table_xml을 순차적으로 처리하는 함수
 def insert_multiple_tables_into_placeholders(docx_path, placeholder_table_dict, output_path):
+    """_summary_
+
+    Args:
+        docx_path (_type_): _description_
+        placeholder_table_dict (dict): {조달금액: xml}
+        output_path (_type_): _description_
+    """
+    korean_placeholder_dict = make_dict_korean(placeholder_table_dict)
     # temp.docx 파일을 원본 문서에서 복사하여 생성
     shutil.copy(docx_path, 'temp.docx')  # 원본 문서를 temp로 복사
 
@@ -71,11 +41,23 @@ def insert_multiple_tables_into_placeholders(docx_path, placeholder_table_dict, 
         xml_tree = etree.fromstring(xml_content)
         body = xml_tree.find('.//w:body', namespaces={'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'})
 
-        # 첫 번째 placeholder와 테이블만 처리
-        for placeholder, table_xml in placeholder_table_dict.items():
-            body = insert_table_into_body(body, table_xml)
-            print('첫 번째 테이블이 추가되었습니다.')
-            # break  # 첫 번째 테이블만 처리하고 루프 종료
+        # 모든 placeholder와 해당 테이블 처리
+        for placeholder_text, table_xml in korean_placeholder_dict.items():
+            placeholder = "{{" + placeholder_text + "}}"
+            # 문서 내에서 placeholder가 있는 단락 찾기
+            paragraphs = body.findall('.//w:p', namespaces={'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'})
+            for para in paragraphs:
+                texts = para.findall('.//w:t', namespaces={'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'})
+                para_text = ''.join([t.text for t in texts])
+                
+                print('text::::', para_text, placeholder)
+                if placeholder in para_text:
+                    print('placeholder 위치를 찾았습니다.')
+                    # 플레이스홀더 텍스트를 제거하고 테이블 삽입
+                    # para.getparent().remove(para)
+                    insert_table_after_paragraph(body, table_xml, para)
+                    print(f'{placeholder} 위치에 테이블이 추가되었습니다.')
+                    break
 
         # 수정된 XML을 다시 저장
         with docx_zip.open('word/document.xml', 'w') as doc_xml:
@@ -84,4 +66,71 @@ def insert_multiple_tables_into_placeholders(docx_path, placeholder_table_dict, 
     # 최종 파일로 저장
     shutil.move('temp.docx', output_path)
 
-    ##########################################잘 작동하는 코드#######################################
+
+##########################################잘 작동하는 코드##########################################3
+# def insert_table_into_body(body, table_xml):
+#     # 네임스페이스 선언
+#     namespace = {
+#         'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
+#     }
+
+#     # 테이블 XML을 etree 객체로 변환
+#     new_table = etree.fromstring(table_xml)
+
+#     # 테이블을 body에 추가
+#     body.append(new_table)
+
+#     # 빈 단락을 추가하여 줄 바꿈 (네임스페이스 포함)
+#     new_paragraph = etree.Element(f"{{{namespace['w']}}}p")  # 빈 단락을 나타내는 XML 요소
+#     body.append(new_paragraph)
+
+#     # 수정된 트리 반환 (body는 이미 수정됨)
+#     return body
+
+# # 여러 placeholder와 table_xml을 순차적으로 처리하는 함수
+# def insert_multiple_tables_into_placeholders(docx_path, placeholder_table_dict, output_path):
+#     # temp.docx 파일을 원본 문서에서 복사하여 생성
+#     shutil.copy(docx_path, 'temp.docx')  # 원본 문서를 temp로 복사
+
+#     # temp.docx 파일을 ZIP 형식으로 열기
+#     with zipfile.ZipFile('temp.docx', 'a') as docx_zip:
+#         # 'word/document.xml' 파일을 수정
+#         with docx_zip.open('word/document.xml', 'r') as doc_xml:
+#             xml_content = doc_xml.read()
+
+#         # 기존 문서의 XML 파싱
+#         xml_tree = etree.fromstring(xml_content)
+#         body = xml_tree.find('.//w:body', namespaces={'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'})
+
+#         # 첫 번째 placeholder와 테이블만 처리
+#         for placeholder, table_xml in placeholder_table_dict.items():
+#             body = insert_table_into_body(body, table_xml)
+#             print('첫 번째 테이블이 추가되었습니다.')
+#             # break  # 첫 번째 테이블만 처리하고 루프 종료
+
+#         # 수정된 XML을 다시 저장
+#         with docx_zip.open('word/document.xml', 'w') as doc_xml:
+#             doc_xml.write(etree.tostring(xml_tree, pretty_print=True, xml_declaration=True, encoding='utf-8'))
+
+#     # 최종 파일로 저장
+#     shutil.move('temp.docx', output_path)
+
+    ###################################################################
+from TsExpert.models import IMExtraction
+def make_dict_korean(placeholder_table_dict):
+    # Get the IMExtraction model
+
+    
+    # Create a mapping of field names to their verbose names
+    field_verbose_mapping = {field.name: field.verbose_name for field in IMExtraction._meta.fields}
+
+    # Create a new dictionary with translated keys
+    new_dict = {}
+    for k, v in placeholder_table_dict.items():
+        # If the key is in the model's fields, replace it with the verbose_name
+        if k in field_verbose_mapping:
+            new_dict[field_verbose_mapping[k]] = v
+        else:
+            new_dict[k] = v  # If no match, keep the original key
+
+    return new_dict

@@ -135,8 +135,8 @@ def run_data_extract2(file, doc_type_id, key_value):
     xml_info =extract_table_from_raw_paragraphs(file, key_value)#'사업개요')
 
 
-    print('final_Dtaa:', final_data)
-    print('table_xml:', xml_info[0])
+    # print('final_Dtaa:', final_data)
+    # print('table_xml:', xml_info[0])
     return final_data, image_info,xml_info
 
 def save_in_db(data, image_data, xml_data, key_value):
