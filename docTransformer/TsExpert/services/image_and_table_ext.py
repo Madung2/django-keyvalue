@@ -137,6 +137,7 @@ def extract_table_under_target(docx_path, target_text):
     # '사업개요' 텍스트를 포함한 단락 찾기 (w:p 태그 안에 w:t로 텍스트 존재)
     paragraphs = xml_tree.findall('.//w:p', namespaces)
     found_target = False
+    target_paragraph = None
 
     for paragraph in paragraphs:
         # 모든 w:t 텍스트 노드의 값을 결합해 단락의 텍스트 생성
@@ -147,16 +148,28 @@ def extract_table_under_target(docx_path, target_text):
             print('target_text:', target_text)
             print('text:')
             found_target = True
+            target_paragraph = paragraph
             print('found_TARGET!!!=>',text)
             continue  # 타깃 텍스트 다음 단락부터 테이블을 찾음
 
-        # 타깃 텍스트 이후 첫 번째 테이블을 찾기
+        # 타깃 텍스트 이후 테이블을 찾기 시작
         if found_target:
-            # w:tbl 태그를 찾음
-            table = paragraph.xpath('.//following-sibling::w:tbl', namespaces=namespaces)
-            if table:
-                # 첫 번째 테이블의 XML 데이터를 반환
-                return etree.tostring(table[0], pretty_print=True).decode('utf-8')
+            # 먼저 현재 단락에서 테이블을 찾음
+            current_table = paragraph.xpath('.//w:tbl', namespaces=namespaces)
+            if current_table:
+                # 현재 단락에서 테이블을 찾으면 그 테이블 반환
+                return (
+                    etree.tostring(current_table[0], pretty_print=True).decode('utf-8')
+                )
+
+            # 현재 단락에 테이블이 없으면 형제 노드에서 테이블을 찾음
+            sibling_table = paragraph.xpath('.//following-sibling::w:tbl', namespaces=namespaces)
+            if sibling_table:
+                # 형제 노드에서 테이블을 찾으면 그 테이블 반환
+                return (
+                    etree.tostring(sibling_table[0], pretty_print=True).decode('utf-8')
+                )
+
     return None
     raise Exception("타깃 텍스트 이후 테이블을 찾을 수 없습니다.")
 
@@ -183,7 +196,7 @@ def extract_table_from_raw_paragraphs(docx_path, key_value):
         all_syns = kv['synonym']['all']
         for syn in all_syns:
             xml = extract_table_under_target(docx_path, syn)
-            if xml is not None:
-                break
+            # if xml is not None:
+            #     break
         table_xml_res.append([kv['key'], xml])
     return table_xml_res
