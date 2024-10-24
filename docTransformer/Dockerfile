@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     g++ \
     build-essential \
     ghostscript \
+    libmagic \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

@@ -26,6 +26,7 @@ import os
 import tempfile
 import PyPDF2
 import json
+import magic
 ##################################################
 
 from django.shortcuts import render
@@ -50,17 +51,32 @@ def convert_pdf_to_docx(pdf_file):
     os.remove(temp_pdf_path)
     return docx_file_path
 
+# def is_pdf_file(input_file):
+#     print('input_file_name:', input_file.name)
+#     return input_file.name.split('.')[-1]=='pdf'
+# def is_doc_file(input_file):
+#     print('input_file_name:', input_file.name)
+#     return input_file.name.split('.')[-1]=='doc'
+
+# def is_hwp_file(input_file):
+#     print('input_file_name:', input_file.name)
+#     return input_file.name.split('.')[-1]=='hwp'
+def get_mime_type(input_file):
+    mime = magic.Magic(mime=True)
+    mime_type = mime.from_buffer(input_file.read(1024))  # 파일 내용을 읽어서 MIME 타입을 추론
+    input_file.seek(0)  # 파일 포인터를 처음으로 되돌림
+    print('MIME type:', mime_type)
+    return mime_type
+
 def is_pdf_file(input_file):
-    print('input_file_name:', input_file.name)
-    return input_file.name.split('.')[-1]=='pdf'
+    return get_mime_type(input_file) == 'application/pdf'
+
 def is_doc_file(input_file):
-    print('input_file_name:', input_file.name)
-    return input_file.name.split('.')[-1]=='doc'
+    mime_type = get_mime_type(input_file)
+    return mime_type == 'application/msword' or mime_type == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 
 def is_hwp_file(input_file):
-    print('input_file_name:', input_file.name)
-    return input_file.name.split('.')[-1]=='hwp'
-
+    return get_mime_type(input_file) == 'application/x-hwp'
 
 def extract_first_5_pages(input_pdf_path, output_pdf_path):
     # PDF 파일 읽기
