@@ -32,8 +32,9 @@ class DocxTableExtractor():
         가로테이블은 [0]번 row가 키. 단 연달아 배경색이 있는 경우 글자 내용이 다르면 둘다 합쳐서 키로 상정한다.
         배경색이 없는 첫번째 데이터가 밸류.
         """
-        print('extracted from horizontal table')
+
         result = {}
+
         
         for row_idx, row in enumerate(self.table_data):
             if 'bg'in row[0] and row[0]['bg']!=False:
@@ -104,7 +105,7 @@ class DocxTableExtractor():
         self.extracted_key_values = result
     
     def _extract_horizontal_plural_table(self):
-        """가로 복수 테이블 추출
+        """가로 복수 테
         이 경우엔 키와 밸류가 연달아 붙어있다고 가정. 한 줄에는 복수의 키밸류 세트가 있을 수 있음.
         왼쪽에 배경색이 있는 셀이 있고 그 직후에 배경색이 없는 셀이 있으면 키밸류로 인지.  
         """
@@ -330,6 +331,8 @@ class KeyValueExtractor:
         for table_idx, table in enumerate(self.doc.tables):
             ext = DocxTableExtractor(table)
             extracted_dict = ext.extracted_key_values #ext.extracted_ke_values는 키:밸류로 된 딕셔너리
+            
+            print('extracted_dict{}::::', extracted_dict)
             text_data, image_data=self.find_res_from_extracted(extracted_dict, table_idx)
             res+= text_data
             image_res += image_data

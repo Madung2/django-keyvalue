@@ -1,4 +1,7 @@
+
 FROM python:3.12-slim
+# We had issue with 3.12 compatibility with numpy and thinc
+# python11 은 poetry에서 먼저 막힘...
 
 # Install Java and other necessary packages
 RUN apt-get update && apt-get install -y \
@@ -9,7 +12,9 @@ RUN apt-get update && apt-get install -y \
     g++ \
     build-essential \
     ghostscript \
-    libmagic \
+    #python3-tk \
+    #poppler-utils\
+    libmagic-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -23,14 +28,17 @@ RUN pip install --no-cache-dir poetry
 WORKDIR /app
 COPY pyproject.toml poetry.lock /app/
 
+
 # Install Python dependencies using Poetry
 RUN poetry config virtualenvs.create false
 RUN poetry install --no-interaction --no-ansi
 
 # Download spaCy models
-RUN pip install --no-cache-dir numpy==1.23.5 thinc==8.1.8
-RUN python -m spacy download en_core_web_sm
-RUN python -m spacy download ko_core_news_sm
+# RUN pip install --no-cache-dir numpy==1.23.5 thinc==8.1.8 
+RUN pip install --no-cache-dir numpy thinc 
+RUN pip install --no-cache-dir camelot-py[base] opencv-python-headless
+#RUN python -m spacy download en_core_web_sm
+#RUN python -m spacy download ko_core_news_sm
 
 COPY . /app
 

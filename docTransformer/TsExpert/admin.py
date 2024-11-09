@@ -161,7 +161,9 @@ class IMExtractionAdmin(admin.ModelAdmin):
 
         if response.status_code == 200:
             # 받은 DOCX 파일을 임시 파일로 저장
+            print('working')
             with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp_docx:
+                print('working2')
                 tmp_docx.write(response.content)
                 tmp_docx.flush()
 

@@ -14,6 +14,9 @@ class DocumentType(models.Model):
 
     def __str__(self):
         return self.type_name_kor
+    
+
+
 
 class ExtractDictionary(models.Model):
     class Meta:
@@ -27,6 +30,21 @@ class ExtractDictionary(models.Model):
     dictionary = models.JSONField('딕셔너리', default=list, null=True, blank=True)
     created_at = models.DateTimeField("생성일자", auto_now_add=True)
     edited_at = models.DateTimeField("수정일자", auto_now=True)
+    in_use = models.BooleanField('사용여부', default=True)
+
+
+class Dictionary(models.Model):
+    class Meta:
+        verbose_name="사전2"
+        verbose_name_plural = "사전2"
+
+    id = models.AutoField('아이디', primary_key=True)
+    file_type = models.CharField('추출문서타입', max_length=255, null=True, blank=True)
+    key = models.CharField('키', max_length=255, null=True, blank=True)
+    val_type = models.CharField('밸류타입', max_length=255, null=True, blank=True)
+    val_syn = models.JSONField('유사어', default=list, null=True, blank=True)
+    val_ext_method = models.JSONField('밸류추출방식', default=list, null=True, blank=True)
+    val_ext_form = models.CharField('밸류추출형식', max_length=64, null=True, blank=True)
     in_use = models.BooleanField('사용여부', default=True)
 
 

@@ -106,8 +106,8 @@ class DocxTableTypeDetector():
             first_row_texts = [t.replace(' ','').strip() for t in first_row_texts]
             print('t',first_row_texts)
             
-            if all('구분' in t or '내용' in t for t in first_row_texts):
-                return True
+            #if all('구분' in t or '내용' in t for t in first_row_texts):
+            #    return True
             if ('Tr.A' in t or 'Tr.B' in t for t in first_row_texts):
                 return True
             

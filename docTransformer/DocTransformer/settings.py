@@ -28,7 +28,7 @@ environ.Env.read_env(str(BASE_DIR/ '.env'))
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 METATYPE = env.int('METATYPE',2)
-
+NAS_BASE_PATH = env('NAS_BASE_PATH')
 SECRET_KEY = env('SECRET_KEY')
 DEBUG = env('DEBUG')
 ALLOWED_HOSTS = ['*']

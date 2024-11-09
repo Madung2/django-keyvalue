@@ -38,8 +38,8 @@ def find_by_key(keyword, target_key):
     Returns:
         _type_: _description_
     """
-    print('keyword', keyword)
-    print('target_key', target_key)
+    #print('keyword', keyword)
+    #print('target_key', target_key)
     for item in keyword:
         if item["key"] == target_key:
             return item  # get 메소드 사용으로 키가 없는 경우 None 반환

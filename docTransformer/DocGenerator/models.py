@@ -15,6 +15,10 @@ class Template(models.Model):
     idx_pos = models.JSONField("인덱스 위치", null=True, blank=True,default=list)
     def __str__(self):
         return f'[{self.contract_type}] :     {self.content}'
+    
+
+
+    
 
 
 class Rules(models.Model):
