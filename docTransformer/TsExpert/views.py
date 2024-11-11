@@ -28,6 +28,7 @@ import PyPDF2
 import json
 import magic
 import camelot
+import pdfplumber
 ##################################################
 from django.shortcuts import render
 
@@ -120,11 +121,13 @@ default_key_value = [
     {"key": "목표수익률", "type": "percentage", "is_table": True, "synonym": {"priority": ["목표수익률"], "all": ["예상수익률", "목표수익률"], "pattern": []}, "specific": False, "sp_word": ["기준"], "split": ["기준"]}
     ]
 IM_key_value = [
-    {"key": "차주사", "type": "string", "is_table": False, "synonym": {"priority": [], "all": ["차주사", "차주(시행사)", "차주"], "pattern": []}, "specific": False, "sp_word": None, "value": ["블라인드펀드", "기업투자"], "split": []},
+    {"key": "차주사", "val_type": "string", "val_syn": ["차주사", "차주(시행사)", "차주"], "val_ext_method": [], "val_ext_form":"str_no_braket"},
 ]
 appraisal_key_value = [
 
 ]
+
+
 
 def get_meta_data(file_type):
     """ExtractDictionary 모델에서 doc_type_id로 필터하고, 그중 가장 최신것을 가져온다.
@@ -169,7 +172,7 @@ def run_data_extract2(file, file_type, key_value):
 
     return final_data, image_info,xml_info
 
-def run_data_extract3(file_path, file_type, key_value):
+def run_data_extract3(file_path, file_type, key_value_list):
     """_summary_
 
     Args:
@@ -182,35 +185,95 @@ def run_data_extract3(file_path, file_type, key_value):
         image_data: [[key, value, page, pos]]
         table_data: [[key, value, page, pos]]
     """
+    text_data = [["key", "value", "page", 'pos']]
+    image_data = [["key", "value", "page", 'pos']]
+    table_data = [["key", "value", "page", 'pos']]
+    string_key_value = [kv for kv in IM_key_value if kv['val_type'] == 'string']
+    table_key_value = [kv for kv in IM_key_value if kv['val_type'] == 'table']
+    image_key_value = [kv for kv in IM_key_value if kv['val_type'] == 'image']
+    print('string_key_value', string_key_value, flush=True)
+    
+    tables = camelot.read_pdf(file_path, pages='all')
 
-    text_data = [["key", "value", "page", 'pos']] 
-    tables = camelot.read_pdf(file_path, pages = 'all')
-    for i, table in enumerate(tables):
-        page_number = table.parsing_report['page']
-        print(table.df)
-        for index, row in table.df.iterrows():  # 모든 행에 대해 반복
-            if '차주(시행사)' in row.values:  # 해당 행에 '차주(시행사)'가 있는지 확인
-        # if '차주(시행사)' in row.values:
-                print(11)
-                filtered_values = [value for value in row.values if value != '차주(시행사)']
-                print(f"Filtered values in row {index}:", filtered_values)
-                extracted_value = ''
-                for ele in filtered_values:
-                    if ele !='':
-                        extracted_value = ele
+    with pdfplumber.open(file_path) as pdf:
+        # Text data extraction
+        for i, table in enumerate(tables):
+            page_number = table.parsing_report['page']
+            print(table.df)
+            for index, row in table.df.iterrows():  # Iterate through each row
+                for key_dict in string_key_value:
+                    key = key_dict["key"]
+                    synonyms = key_dict.get("val_syn", [])
+                    print('key', key, flush=True)
+                    print('syn', synonyms, flush=True)
+                    
+                    # Check if any synonym is in row values
+                    if any(synonym in row.values for synonym in synonyms):
+                        print(f"Found match for key '{key}' using synonyms: {synonyms}", flush=True)
+                        
+                        # Extract remaining value(s) from the row
+                        filtered_values = [value for value in row.values if value not in synonyms]
+                        extracted_value = next((ele for ele in filtered_values if ele != ''), '')
+                        
+                        # Get position information using pdfplumber
+                        page = pdf.pages[page_number - 1]  # pdfplumber uses zero-based index
+                        words = page.extract_words()
+                        pos = None
+                        for word in words:
+                            if extracted_value in word['text']:
+                                pos = (word['x0'], word['top'], word['x1'], word['bottom'])  # Bounding box coordinates
+                                break
+                        
+                        # Append extracted data to text_data
+                        text_data.append([key, extracted_value, page_number, pos if pos else 'pos not found'])
+        # Image and Table data extraction
+        for i, page in enumerate(pdf.pages):
+            page_number = i + 1
+            # Process image data
+            for key_dict in image_key_value:
+                key = key_dict["key"]
+                synonyms = key_dict.get("val_syn", [])
+                words = page.extract_words()
+                
+                # Find the first occurrence of any synonym
+                pos = None
+                for word in words:
+                    if any(synonym in word['text'] for synonym in synonyms):
+                        pos = (word['x0'], word['top'], word['x1'], word['bottom'])  # Bounding box coordinates
                         break
-                # 필요한 작업 수행
-                text_data.append(['차주', extracted_value, page_number, 'pos'])
-                print(12)   # return table.df.iloc[1].values
+                
+                if pos:
+                    # Find the first image below the found text
+                    images = page.images
+                    image_below = None
+                    for image in images:
+                        if image["top"] > pos[1]:  # Ensure it's below the found text
+                            image_below = image
+                            break
+                    
+                    if image_below:
+                        image_value = f"Image at {image_below['x0']},{image_below['top']}"  # Customize this value as needed
+                        image_pos = (image_below['x0'], image_below['top'], image_below['x1'], image_below['bottom'])
+                        image_data.append([key, image_value, page_number, image_pos])
             
-        # 1) 먼저 각 테이블 요소를 돌면서 0번 위치에 값이 있으면 그걸 넣고
+            # Process table data
+            for key_dict in table_key_value:
+                key = key_dict["key"]
+                synonyms = key_dict.get("val_syn", [])
+                words = page.extract_words()
+                
+                # Find the first occurrence of any synonym
+                pos = None
+                for word in words:
+                    if any(synonym in word['text'] for synonym in synonyms):
+                        pos = (word['x0'], word['top'], word['x1'], word['bottom'])  # Bounding box coordinates
+                        break
+                
+                if pos:
+                    # Assuming you want to add tables near this position, this part needs clarification on what you mean by table extraction
+                    # For now, placeholder behavior is shown
+                    table_data.append([key, "Table data placeholder", page_number, pos])
 
-        # 2)
-    
-    
-    image_data = []
-    table_data = []
-    
     return text_data, image_data, table_data
 
 def save_in_db(data, image_data, xml_data, key_value):
@@ -262,7 +325,7 @@ def save_in_db(data, image_data, xml_data, key_value):
 
 from django.http import JsonResponse
 from rest_framework.decorators import api_view, parser_classes
-from rest_framework.parsers import MultiPartParser
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework import status
 import io
@@ -270,40 +333,53 @@ import io
 
 
 
-def process_file(file_type, file_path):
-    """Helper function to handle file processing and conversion based on path.
+def process_file(file_type, file):
+    """Helper function to handle file processing and conversion based on file input.
     file_type = 100 (int) IM 문서, 200(감정평가서), 영업의견서
-    file_path = '/'
+    file = InMemoryUploadedFile or file path string (depending on context)
     """
-    try:
-        full_file_path = NAS_BASE_PATH +file_path
+    print('file_type', type(file_type), file_type)
+    print('file', type(file), file)
+    # try:
+        # Determine if the input is a file object (InMemoryUploadedFile) or a file path string
+    if hasattr(file, 'read'):  # Check if `file` is an uploaded file object
+        content = file.read()  # Read file content if it's an uploaded file
+        file_path = f"/tmp/{file.name}"  # Temporary file path (adjust as needed)
         
-        # 파일 경로가 실제 존재하는지 확인
-        if not os.path.exists(full_file_path):
-            return None, {"error": f"File not found at path: {file_path}"}, status.HTTP_404_NOT_FOUND
-        file_path = full_file_path
-        # 파일을 읽고 처리하는 로직
-        print(1)
-        with open(file_path, 'rb') as file:
-            content = file.read()
-        print(2)
-        # 예시로 변환 로직을 파일 타입에 따라 분기
-        file_url = None
-        # if is_doc_file(content) or is_hwp_file(content):
-        #     file, file_url = convert_to_docx(file, file_type)
-        # elif is_pdf_file(content):
-        #     file, file_url = convert_pdf_to_docx(file)
-        print(3)
-        # 데이터 처리
-        key_value = get_meta_data(file_type)
-        result, image_data, xml_data = run_data_extract3(file_path, file_type, key_value)
-        print(4)
-        #save_in_db(result, image_data, xml_data, key_value)
-        return result, {"file_url": file_url}, None
+        # Save the uploaded file to a temporary location if needed
+        with open(file_path, 'wb') as temp_file:
+            temp_file.write(content)
+    else:
+        # Assume `file` is a file path
+        file_path = os.path.join(NAS_BASE_PATH, file)  # Join base path if needed
+        # Check if the file exists
+        if not os.path.exists(file_path):
+            return None, {"error": f"File not found at path: {file}"}, status.HTTP_404_NOT_FOUND
+        
+        # Open the file and read content
+        with open(file_path, 'rb') as file_obj:
+            content = file_obj.read()
 
-    except Exception as e:
-        # 예외 처리
-        return None, {"error": str(e)}, status.HTTP_500_INTERNAL_SERVER_ERROR
+    # File processing logic
+    print(1)
+    file_url = None
+    # Example branching based on file type, can be customized
+    # if is_doc_file(content) or is_hwp_file(content):
+    #     file, file_url = convert_to_docx(file, file_type)
+    # elif is_pdf_file(content):
+    #     file, file_url = convert_pdf_to_docx(file)
+    print(2)
+    # Data extraction
+    key_value = get_meta_data(file_type)
+    result, image_data, xml_data = run_data_extract3(file_path, file_type, key_value)
+    print(3)
+    # Optionally save results in a database
+    # save_in_db(result, image_data, xml_data, key_value)
+    return result, {"file_url": file_url}, None
+
+    # except Exception as e:
+    #     # Handle exceptions gracefully
+    #     return None, {"error": str(e)}, status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
 @csrf_exempt
@@ -354,45 +430,57 @@ def extract_term_sheet(request):
 
 @csrf_exempt
 @api_view(['POST'])
+@parser_classes([MultiPartParser, FormParser])
 def extract(request):
-    """API endpoint for extracting key-value pairs from files."""
-    # 요청 데이터가 리스트 형식인지 확인
-    # 이 시점에 JOB 작업로그가 생성되야함 혹은 프론트엔드에서 부를 때
+    """API endpoint for extracting key-value pairs from uploaded files."""
 
-    if not isinstance(request.data, list):
-        return Response({"error": "Invalid input format, expected a list of dictionaries."}, status=status.HTTP_400_BAD_REQUEST)
+    # Collecting files from the request
+    file_1 = request.FILES.get('file_1')
+    file_2 = request.FILES.get('file_2')
+    file_type_1 = request.data.get('file_type_1')
+    file_name_1 = request.data.get('file_name_1')
+    file_type_2 = request.data.get('file_type_2')
+    file_name_2 = request.data.get('file_name_2')
 
     response_data = []
     errors = []
-    print(request.data)
-    # 각 요청 항목 처리
-    for item in request.data:
-        print(item)
-        file_type = int(item.get('file_type'))
-        file_path = item.get('file_path')
-        file_name = item.get('file_name')
-        # TODO :이 위치에서 InputDocument Table에 값을 넣어야함
+    print(request.data, flush=True)
+    # Process file_1 if present
+    if file_1 and file_type_1:
+        # Example of using file_1.name
+        print(f"Processing file: {file_1.name}")  # file_1.name is a string
+        result_1, file_url_response_1, error_1 = process_file(file_type_1, file_1)
+        if error_1:
+            errors.append({"error": file_url_response_1, "input": {"file_name": file_name_1, "file_type": file_type_1}})
+        else:
+            response_data.append({
+                'file_name': file_name_1,
+                'file_type': file_type_1,
+                'data': result_1 #format_result(result_1)  # Assuming you have a function to format results
+            })
+    elif file_1 or file_type_1:
+        errors.append({"error": "Missing file_1 or file_type_1 in the request."})
 
-        if not file_type or not file_path:
-            errors.append({"error": "Missing file_type or file_path in request data", "input": item})
-            continue
+    # Process file_2 if present
+    if file_2 and file_type_2:
+        # Example of using file_2.name
+        print(f"Processing file: {file_2.name}")  # file_2.name is a string
+        result_2, file_url_response_2, error_2 = process_file(file_type_2, file_2)
+        if error_2:
+            errors.append({"error": file_url_response_2, "input": {"file_name": file_name_2, "file_type": file_type_2}})
+        else:
+            response_data.append({
+                'file_name': file_name_2,
+                'file_type': file_type_2,
+                'data': format_result(result_2)  # Assuming you have a function to format results
+            })
+    elif file_2 or file_type_2:
+        errors.append({"error": "Missing file_2 or file_type_2 in the request."})
 
-        # 파일 처리 함수 호출
-        result, file_url_response, error = process_file(file_type, file_path)
-        
-        if error:
-            errors.append({"error": file_url_response, "input": item})
-            continue
-        # 결과 저장
-        each_data =[] 
-        for k, v, _, _ in result:
-            each_data.append({'key':k, 'value': v, 'type':'string', 'page':'', 'pos':[]})
-        response_data.append({'file_name':file_name, 'file_type':file_type, 'data':each_data})
-
-    # 응답 생성
-    response = {"res": response_data, 'job_id': 1}
+    # Prepare the response
+    response = {"res": response_data, 'job_id': 1}  # Adjust job_id logic as needed
     if errors:
         response["errors"] = errors
-        return Response(response,status=400)
+        return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
-    return Response(response, status= 200)
+    return Response(response, status=status.HTTP_200_OK)

@@ -1,48 +1,3 @@
-# version: "3.8"
-
-# services:
-#   unoserver:
-#     container_name: unoserver
-#     image: ghcr.io/unoconv/unoserver-docker:0.3.21
-#     ports:
-#       - "2003:2003"
-#     volumes:
-#       - shared_data:/home/worker/data/
-#     command: unoserver --interface 0.0.0.0
-#     networks:
-#       - my_network
-
-#   doctransformer:
-#     container_name: doctransformer
-#     build:
-#       context: .
-#       dockerfile: Dockerfile
-#     ports:
-#       - "58501:8501"
-#       #- "8501:80"
-#     environment:
-#       - JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-#     volumes:
-#       - shared_data:/data/
-#       - /var/run/docker.sock:/var/run/docker.sock
-#       - ./db.sqlite3:/app/db.sqlite3
-#         #command: python docTransformer/manage.py runserver 0.0.0.0:80
-#     depends_on:
-#       - unoserver
-#     networks:
-#       - my_network
-#     command: >
-#       sh -c "python manage.py makemigrations &&
-#              python manage.py migrate &&
-#              python manage.py runserver 0.0.0.0:8501"
-
-# volumes:
-#   shared_data:
-#   db_data:
-
-# networks:
-#   my_network:
-#     driver: bridge
 version: "3.8"
 
 services:
@@ -63,9 +18,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      #- "58501:8501"
-      - "8888:8501"
-      - "8900:8888"
+      - "58501:8501"
       #- "8501:80"
     environment:
       - JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
@@ -78,8 +31,10 @@ services:
       - unoserver
     networks:
       - my_network
-    command:   >
-            sh -c "jupyter-lab --ip=0.0.0.0 --no-browser --allow-root"
+    command: >
+      sh -c "python manage.py makemigrations &&
+             python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8501"
 
 volumes:
   shared_data:
@@ -88,3 +43,48 @@ volumes:
 networks:
   my_network:
     driver: bridge
+# version: "3.8"
+
+# services:
+#   unoserver:
+#     container_name: unoserver
+#     image: ghcr.io/unoconv/unoserver-docker:0.3.21
+#     ports:
+#       - "2003:2003"
+#     volumes:
+#       - shared_data:/home/worker/data/
+#     command: unoserver --interface 0.0.0.0
+#     networks:
+#       - my_network
+
+#   doctransformer:
+#     container_name: doctransformer
+#     build:
+#       context: .
+#       dockerfile: Dockerfile
+#     ports:
+#       #- "58501:8501"
+#       - "8888:8501"
+#       - "8900:8888"
+#       #- "8501:80"
+#     environment:
+#       - JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+#     volumes:
+#       - shared_data:/data/
+#       - /var/run/docker.sock:/var/run/docker.sock
+#       - ./db.sqlite3:/app/db.sqlite3
+#         #command: python docTransformer/manage.py runserver 0.0.0.0:80
+#     depends_on:
+#       - unoserver
+#     networks:
+#       - my_network
+#     command:   >
+#             sh -c "jupyter-lab --ip=0.0.0.0 --no-browser --allow-root"
+
+# volumes:
+#   shared_data:
+#   db_data:
+
+# networks:
+#   my_network:
+#     driver: bridge

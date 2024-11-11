@@ -89,7 +89,8 @@ RUN poetry install --no-interaction --no-ansi
 #COPY samples samples
 COPY quickstart.py .
 #RUN python quickstart.py
-RUN pip install jupyterlab
+RUN pip install jupyterlab pdfplumber
+
 COPY . /app
 
 # Run the Django application
