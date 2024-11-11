@@ -28,7 +28,7 @@ import PyPDF2
 import json
 import magic
 import camelot
-import pdfplumber
+#import pdfplumber
 ##################################################
 from django.shortcuts import render
 
