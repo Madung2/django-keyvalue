@@ -20,7 +20,8 @@ ENV PATH $JAVA_HOME/bin:$PATH
 
 # Install Poetry
 RUN pip install --no-cache-dir poetry
-
+WORKDIR /app
+COPY pyproject.toml poetry.lock /pp/
 # Install Python dependencies using Poetry
 RUN poetry config virtualenvs.create false
 RUN poetry install --no-interaction --no-ansi
