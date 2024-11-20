@@ -27,8 +27,8 @@ environ.Env.read_env(env_file=BASE_DIR / '.env')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
-HOST = env('HOST')
-PORT = env('PORT')
+#HOST = env('HOST')
+#PORT = env('PORT')
 METATYPE = env.int('METATYPE',2)
 #print('HOST', HOST, 'PORT', PORT, 'MetaType', METATYPE)
 SECRET_KEY = env('SECRET_KEY')

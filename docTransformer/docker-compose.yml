@@ -18,7 +18,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8501:8501"
+      - "58501:8501"
     environment:
       - JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
     volumes:

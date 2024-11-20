@@ -26,8 +26,8 @@ RUN poetry config virtualenvs.create false
 RUN poetry install --no-interaction --no-ansi
 
 # Download spaCy models
-RUN python -m spacy download en_core_web_sm
-RUN python -m spacy download ko_core_news_sm
+#RUN python -m spacy download en_core_web_sm
+#RUN python -m spacy download ko_core_news_sm
 
 # USER django => unable to find user django
 # Make port 80 available to the world outside this container
