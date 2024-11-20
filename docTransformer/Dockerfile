@@ -1,7 +1,6 @@
 FROM python:3.12-slim
 
 # Set the working directory in the container
-WORKDIR /app
 
 # Install Java and other necessary packages
 RUN apt-get update && apt-get install -y \
@@ -21,7 +20,7 @@ ENV PATH $JAVA_HOME/bin:$PATH
 # Install Poetry
 RUN pip install --no-cache-dir poetry
 WORKDIR /app
-COPY pyproject.toml poetry.lock /pp/
+COPY pyproject.toml poetry.lock /app/
 # Install Python dependencies using Poetry
 RUN poetry config virtualenvs.create false
 RUN poetry install --no-interaction --no-ansi
